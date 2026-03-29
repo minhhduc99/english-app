@@ -1,0 +1,97 @@
+services:
+  # Main Database
+  postgres:
+    image: postgres:15.17-alpine
+    container_name: lms-postgres
+    environment:
+      POSTGRES_USER: lms_admin
+      POSTGRES_PASSWORD: securepassword123
+      POSTGRES_DB: lms_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./core-service/src/init-scripts:/docker-entrypoint-initdb.d # For migration scripts
+    restart: unless-stopped
+    networks:
+      - lms
+
+  # Message Queue & Cache
+  redis:
+    image: redis:7.4-alpine
+    container_name: lms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - lms
+
+  # Open-source distributed object storage
+  garage:
+    image: dxflrs/garage:v2.2.0 # Check for the latest tag
+    container_name: lms-garage
+    environment:
+      # These variables help initialize metadata/storage
+      GARAGE_CONFIG_FILE: /etc/garage/garage.toml
+    ports:
+      - "3900:3900" # S3 API
+      - "3901:3901" # Admin API
+    volumes:
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+      - ./garage.toml:/etc/garage/garage.toml
+    restart: unless-stopped
+    networks:
+      - lms
+
+  # Core Service (NestJS)
+  # core-lms:
+  #   build: 
+  #     context: ./core-service
+  #     dockerfile: Dockerfile
+  #   container_name: lms-core
+  #   environment:
+  #     - NODE_ENV=development
+  #     - DATABASE_URL=postgresql://lms_admin:securepassword123@postgres:5432/lms_db
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - S3_ENDPOINT=http://garage:3900
+  #     - AI_SERVICE_URL=http://ai-service:8000
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #     - garage
+  #   restart: unless-stopped
+
+  # # AI Service (FastAPI)
+  # ai-service:
+  #   build:
+  #     context: ./ai-service
+  #     dockerfile: Dockerfile
+  #   container_name: lms-ai
+  #   environment:
+  #     - ENVIRONMENT=development
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - PINECONE_API_KEY=your_pinecone_key
+  #     - PING_WEBHOOK_URL=http://core-lms:3000/api/webhooks/ai
+  #   ports:
+  #     - "8000:8000" # REST/Websockets
+  #   depends_on:
+  #     - redis
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  garage_meta:
+  garage_data:
+
+networks:
+  lms:
+    name: lms
+    driver: bridge
