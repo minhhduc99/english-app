@@ -123,3 +123,95 @@ ai-service/
 ├── requirements.txt
 └── Dockerfile
 ```
+
+## 7. API Endpoints & Security
+
+### 7.1. Authentication Flow
+The system uses **Role-Based Access Control (RBAC)** to secure endpoints. Roles include: `ADMIN`, `TEACHER`, `STUDENT`, `MANAGER`.
+
+Authentication is handled via the underlying `@nestjs/common` logic mimicking an OAuth/JWT provider.
+- **Register:** `POST /api/auth/register` - Creates a new user. The first user registration mocks an `ADMIN` role.
+- **Login:** `POST /api/auth/login` - Authenticates user. Stores `token` and `user` object in `localStorage` securely.
+- **Me:** `GET /api/auth/me` - Retrieves personal information of the authenticated user to render in the client UI.
+
+### 7.2. Admin Dashboard (DashboardModule)
+Used by the React Client for the administrative overview.
+
+- **Endpoint:** `GET /api/dashboard/overview`
+- **Security:** Requires `ADMIN` or `MANAGER` role.
+- **Response Shape:**
+  ```json
+  {
+    "stats": [
+      { "label": "Total Students", "value": "1,234", "icon": "Users", "color": "blue" },
+      ...
+    ],
+    "recentActivity": [
+      { "id": 1, "type": "STUDENT_ENROLLED", "message": "New student enrolled", "timestamp": "2 hours ago" },
+      ...
+    ]
+  }
+  ```
+
+## 8. Running the Services (Development)
+
+
+### 7.1. Infrastructure (Database, Redis, Storage)
+
+The system requires external services (PostgreSQL, Redis, Garage S3) to be running. Use Docker Compose to spin them up locally:
+
+```bash
+docker compose up -d
+```
+
+### 7.2. NestJS Core Service (NestJS)
+
+Managed within the `core-service/src` directory.
+
+```bash
+# Navigate to service root
+cd core-service/src
+
+# Install dependencies  
+npm install
+
+# Run in development mode (watches for changes)
+npm run start:dev
+```
+
+### 7.3. Python AI Service (FastAPI)
+
+Managed within the `ai-service` directory.
+
+```bash
+# Navigate to service root
+cd ai-service
+
+# (Highly Recommended) Create and activate a virtual environment
+python -m venv venv
+# On Windows:
+.\venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the API server with Uvicorn
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 7.4. React Client Service (Vite)
+
+Managed within the `client` directory.
+
+```bash
+# Navigate to client root
+cd client
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
