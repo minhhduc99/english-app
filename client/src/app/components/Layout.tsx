@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 
 export function Layout() {
@@ -38,10 +39,23 @@ export function Layout() {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // Call the logout API
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      // Clear storage regardless of API success to avoid session hanging in UI
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
+    }
   };
 
   const getInitials = (name: string) => {
@@ -69,6 +83,8 @@ export function Layout() {
         { path: "/attendance", label: "Attendance" },
       ],
     },
+    // Only show User Management for Admins
+    ...(user.role === "ADMIN" ? [{ path: "/user-management", label: "User Management", icon: ShieldCheck }] : []),
     { path: "/reports", label: "Reports", icon: FileText },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
@@ -82,6 +98,7 @@ export function Layout() {
       return "Attendance";
     if (location.pathname === "/reports") return "Reports";
     if (location.pathname === "/settings") return "Settings";
+    if (location.pathname === "/user-management") return "User Management";
     return null;
   };
 

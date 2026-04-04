@@ -215,3 +215,6 @@ npm install
 # Start the development server
 npm run dev
 ```
+
+# Next plan
+Test security, performance, and scalability of the system.

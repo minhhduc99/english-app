@@ -8,13 +8,23 @@ export function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const hashPassword = async (pwd: string) => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pwd);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:3000/api/auth/login", {
+      const maskedPassword = await hashPassword(password);
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password: maskedPassword }),
       });
 
       if (!response.ok) {
@@ -22,16 +32,18 @@ export function Login() {
       }
 
       const data = await response.json();
-      // Store token/user info
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user)); // Mock storing user for Navbar
-      
-      // Navigate to dashboard
-      navigate("/");
-      // Force reload to update Navbar (simple state handling for now)
-      window.location.reload(); 
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      if (data.requiresPasswordChange) {
+        navigate("/change-password");
+      } else {
+        navigate("/");
+      }
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      // Refreshing the logic for UI consistency without full page reload
     }
   };
 

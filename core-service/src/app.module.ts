@@ -27,7 +27,7 @@ import { AuthModule } from './modules/auth/auth.module';
         type: 'postgres',
         url: config.get<string>('DATABASE_URL', 'postgresql://lms_admin:securepassword123@localhost:5432/lms_db'),
         autoLoadEntities: true,
-        synchronize: false, 
+        synchronize: true, 
       }),
     }),
 

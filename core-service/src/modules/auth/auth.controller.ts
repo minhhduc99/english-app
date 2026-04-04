@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Get, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Request, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './services/auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { Role } from '../../../common/enums/role.enum';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { Role } from '../../common/enums/role.enum';
 
 @Controller('auth')
 export class AuthController {
@@ -15,14 +16,35 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
-    // Injecting ADMIN role if not provided for first user workflow
-    return this.authService.register({ ...registerDto, role: Role.ADMIN });
+    return this.authService.register(registerDto);
+  }
+
+  @Post('change-password')
+  async changePassword(@Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(dto);
+  }
+
+  // Management endpoints
+  @Post('system-user')
+  async createSystemUser(@Body() registerDto: RegisterDto) {
+    // Basic validation: ensure role is provided for system users, fallback to TEACHER
+    const role = registerDto.role === Role.ADMIN ? Role.ADMIN : (registerDto.role || Role.TEACHER);
+    return this.authService.createManagedUser(registerDto, role, true);
+  }
+
+  @Post('student')
+  async createStudent(@Body() registerDto: RegisterDto) {
+    return this.authService.createManagedUser(registerDto, Role.STUDENT, true);
   }
 
   // Mocking protected endpoint
   @Get('me')
   async getMe(@Request() req: any) {
-    // Assume user id 1 is passed by headers or token in realistic scenario. Here we mock returning Admin.
-    return this.authService.getMe(1);
+    return this.authService.getMe('00000000-0000-0000-0000-000000000000');
+  }
+
+  @Post('logout')
+  async logout() {
+    return this.authService.logout();
   }
 }

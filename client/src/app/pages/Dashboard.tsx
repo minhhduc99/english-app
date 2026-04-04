@@ -1,6 +1,8 @@
 import { Users, BookOpen, TrendingUp, Award } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ManagerDashboard } from "./manager/Dashboard";
 
-export function Dashboard() {
+function AdminDashboard() {
   const stats = [
     { label: "Total Students", value: "1,234", icon: Users, color: "bg-blue-50 text-blue-600" },
     { label: "Total Courses", value: "48", icon: BookOpen, color: "bg-green-50 text-green-600" },
@@ -64,4 +66,25 @@ export function Dashboard() {
       </div>
     </div>
   );
+}
+
+export function Dashboard() {
+  const [role, setRole] = useState<string>("ADMIN");
+  
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user.role) {
+        setRole(user.role);
+      }
+    } catch (e) {
+      // default to ADMIN
+    }
+  }, []);
+
+  if (role === "MANAGER") {
+    return <ManagerDashboard />;
+  }
+
+  return <AdminDashboard />;
 }
