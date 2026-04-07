@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { UserPlus, GraduationCap, ShieldCheck, Mail, User, Key, CheckCircle2 } from "lucide-react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export function UserManagement() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"system" | "student">("system");
   const [formData, setFormData] = useState({
     username: "",
@@ -57,8 +59,8 @@ export function UserManagement() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="border-b border-gray-100 px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-gray-500 mt-1">Administer platform roles and student onboarding</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t("menu.user_management")}</h1>
+            <p className="text-gray-500 mt-1">{t("Administer platform roles and student onboarding")}</p>
           </div>
           <div className="bg-gray-50 p-1 rounded-xl flex gap-1">
             <button
@@ -70,7 +72,7 @@ export function UserManagement() {
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
-              System Users
+              {t("System Users")}
             </button>
             <button
               onClick={() => setActiveTab("student")}
@@ -81,7 +83,7 @@ export function UserManagement() {
               }`}
             >
               <GraduationCap className="w-4 h-4" />
-              Students
+              {t("Students")}
             </button>
           </div>
         </div>
@@ -102,7 +104,7 @@ export function UserManagement() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Full Name</label>
+                <label className="text-sm font-semibold text-gray-700">{t("auth.fullname")}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -111,13 +113,13 @@ export function UserManagement() {
                     value={formData.fullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A73E8] transition-all"
-                    placeholder="Enter full name"
+                    placeholder={t("Enter full name")}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Username</label>
+                <label className="text-sm font-semibold text-gray-700">{t("auth.username")}</label>
                 <div className="relative">
                   <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -132,7 +134,7 @@ export function UserManagement() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-semibold text-gray-700">Email Address</label>
+                <label className="text-sm font-semibold text-gray-700">{t("auth.email")}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -147,7 +149,7 @@ export function UserManagement() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Temporary Password</label>
+                <label className="text-sm font-semibold text-gray-700">{t("Temporary Password")}</label>
                 <div className="relative">
                   <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
@@ -156,7 +158,7 @@ export function UserManagement() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A73E8] transition-all"
-                    placeholder="Set temporary password"
+                    placeholder={t("Set temporary password")}
                   />
                 </div>
               </div>
@@ -183,10 +185,10 @@ export function UserManagement() {
                 disabled={loading}
                 className="w-full py-4 bg-[#1A73E8] text-white rounded-xl font-bold hover:bg-[#1557b0] transition-colors shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
               >
-                {loading ? "Processing..." : `Create ${activeTab === 'system' ? 'System' : 'Student'} Account`}
+                {loading ? t("auth.processing") : (activeTab === 'system' ? t("Create System Account") : t("Create Student Account"))}
               </button>
               <p className="text-center text-xs text-gray-400 mt-4">
-                User will be prompted to change this temporary password on their first login.
+                {t("User will be prompted to change this temporary password on their first login.")}
               </p>
             </div>
           </form>

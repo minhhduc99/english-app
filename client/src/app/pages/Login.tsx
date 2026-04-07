@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { BookOpen } from "lucide-react";
+import { useLanguage } from "../contexts/LanguageContext";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 
 export function Login() {
+  const { t } = useLanguage();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -48,17 +51,20 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center flex-col items-center">
           <div className="w-12 h-12 bg-[#1A73E8] rounded-xl flex items-center justify-center mb-4 shadow-sm">
             <BookOpen className="w-8 h-8 text-white" />
           </div>
           <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
-            Welcome Back
+            {t("auth.welcome")}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access your EduLMS workspace
+            {t("auth.login_subtitle")}
           </p>
         </div>
       </div>
@@ -73,7 +79,7 @@ export function Login() {
             )}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Username
+                {t("auth.username")}
               </label>
               <div className="mt-1">
                 <input
@@ -89,7 +95,7 @@ export function Login() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Password
+                {t("auth.password")}
               </label>
               <div className="mt-1">
                 <input
@@ -115,13 +121,13 @@ export function Login() {
                   htmlFor="remember-me"
                   className="ml-2 block text-sm text-gray-900"
                 >
-                  Remember me
+                  {t("auth.remember")}
                 </label>
               </div>
 
               <div className="text-sm">
                 <a href="#" className="font-medium text-[#1A73E8] hover:text-[#1557b0] transition-colors">
-                  Forgot your password?
+                  {t("auth.forgot")}
                 </a>
               </div>
             </div>
@@ -131,7 +137,7 @@ export function Login() {
                 type="submit"
                 className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#1A73E8] hover:bg-[#1557b0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A73E8] transition-colors"
               >
-                Sign In
+                {t("auth.signin")}
               </button>
             </div>
           </form>
@@ -143,7 +149,7 @@ export function Login() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  New to EduLMS?
+                  {t("auth.new_to")}
                 </span>
               </div>
             </div>
@@ -153,7 +159,7 @@ export function Login() {
                 to="/register"
                 className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A73E8] transition-colors"
               >
-                Create an account
+                {t("auth.create_account")}
               </Link>
             </div>
           </div>

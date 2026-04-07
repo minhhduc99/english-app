@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Brain, Sparkles, Zap, Users, Shield, Palette, Image, Sun, Moon, Monitor } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export function Settings() {
+  const { t } = useLanguage();
   const [selectedTheme, setSelectedTheme] = useState("light");
   const [selectedBackground, setSelectedBackground] = useState("default");
 
@@ -79,8 +81,8 @@ export function Settings() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-        <p className="text-gray-500 mt-1">Manage system settings and preferences</p>
+        <h1 className="text-2xl font-semibold text-gray-900">{t("menu.settings")}</h1>
+        <p className="text-gray-500 mt-1">{t("Manage system settings and preferences")}</p>
       </div>
 
       {/* Roles & Permissions Section */}
@@ -141,8 +143,8 @@ export function Settings() {
             <Palette className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Theme Settings</h3>
-            <p className="text-sm text-gray-500">Customize the appearance of your dashboard</p>
+            <h3 className="text-lg font-semibold text-gray-900">{t("Theme Settings")}</h3>
+            <p className="text-sm text-gray-500">{t("Customize the appearance of your dashboard")}</p>
           </div>
         </div>
 

@@ -1,9 +1,6 @@
 import { Calendar, CheckCircle, XCircle, Users } from "lucide-react";
-import { useEffect, useState } from "react";
-import { ManagerAttendance } from "./manager/Attendance";
-import { Attendance as TeacherAttendance } from "./teacher/Attendance";
 
-function AdminAttendance() {
+export function Attendance() {
   const attendanceData = [
     { date: "2026-03-23", class: "Class 5A", present: 28, absent: 2, total: 30 },
     { date: "2026-03-22", class: "Class 5A", present: 29, absent: 1, total: 30 },
@@ -98,29 +95,4 @@ function AdminAttendance() {
       </div>
     </div>
   );
-}
-
-export function Attendance() {
-  const [role, setRole] = useState<string>("ADMIN");
-  
-  useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user.role) {
-        setRole(user.role);
-      }
-    } catch (e) {
-      // default
-    }
-  }, []);
-
-  if (role === "MANAGER") {
-    return <ManagerAttendance />;
-  }
-
-  if (role === "TEACHER") {
-    return <TeacherAttendance />;
-  }
-
-  return <AdminAttendance />;
 }

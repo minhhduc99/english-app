@@ -1,6 +1,8 @@
 import { Users, BookOpen, TrendingUp, Award } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManagerDashboard } from "./manager/Dashboard";
+import { Dashboard as TeacherDashboard } from "./teacher/Dashboard";
+import { Dashboard as StudentDashboard } from "./student/Dashboard";
 
 function AdminDashboard() {
   const stats = [
@@ -84,6 +86,14 @@ export function Dashboard() {
 
   if (role === "MANAGER") {
     return <ManagerDashboard />;
+  }
+
+  if (role === "TEACHER") {
+    return <TeacherDashboard />;
+  }
+
+  if (role === "STUDENT") {
+    return <StudentDashboard />;
   }
 
   return <AdminDashboard />;

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   LayoutDashboard,
   BookOpen,
@@ -13,6 +15,12 @@ import {
   X,
   LogOut,
   ShieldCheck,
+  FolderOpen,
+  Home,
+  Mic,
+  CreditCard,
+  Trophy,
+  Map,
 } from "lucide-react";
 
 export function Layout() {
@@ -20,6 +28,7 @@ export function Layout() {
   const navigate = useNavigate();
   const [studentsExpanded, setStudentsExpanded] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useLanguage();
   
   // Use user state instead of hardcoded
   const [user, setUser] = useState({ fullName: "Loading...", role: "..." });
@@ -70,35 +79,53 @@ export function Layout() {
       .slice(0, 2);
   };
 
-  const menuItems = [
-    { path: "/", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/courses", label: "Courses", icon: BookOpen },
-    {
-      path: "/students",
-      label: "Students",
-      icon: Users,
-      expandable: true,
-      subItems: [
-        { path: "/students", label: "Student Management" },
-        { path: "/attendance", label: "Attendance" },
-      ],
-    },
-    // Only show User Management for Admins
-    ...(user.role === "ADMIN" ? [{ path: "/user-management", label: "User Management", icon: ShieldCheck }] : []),
-    { path: "/reports", label: "Reports", icon: FileText },
-    { path: "/settings", label: "Settings", icon: Settings },
-  ];
+  const getMenuItems = () => {
+    if (user.role === "STUDENT") {
+      return [
+        { path: "/", label: t("menu.home"), icon: Home },
+        { path: "/courses", label: t("menu.my_courses"), icon: BookOpen },
+        { path: "/learning-path", label: t("menu.learning_path"), icon: Map },
+        { path: "/ai-speaking", label: t("menu.ai_speaking"), icon: Mic },
+        { path: "/flashcards", label: t("menu.flashcards"), icon: CreditCard },
+        { path: "/achievements", label: t("menu.achievements"), icon: Trophy },
+      ];
+    }
+    return [
+      { path: "/", label: t("menu.dashboard"), icon: LayoutDashboard },
+      { path: "/courses", label: t("menu.courses"), icon: BookOpen },
+      {
+        path: "/students",
+        label: t("menu.students"),
+        icon: Users,
+        expandable: true,
+        subItems: [
+          { path: "/students", label: t("menu.student_management") },
+          { path: "/attendance", label: t("menu.attendance") },
+        ],
+      },
+      // Only show User Management for Admins
+      ...(user.role === "ADMIN" ? [{ path: "/user-management", label: t("menu.user_management"), icon: ShieldCheck }] : []),
+      ...(user.role === "TEACHER" || user.role === "ADMIN" ? [{ path: "/learning-materials", label: t("menu.learning_materials"), icon: FolderOpen }] : []),
+      { path: "/reports", label: t("menu.reports"), icon: FileText },
+      { path: "/settings", label: t("menu.settings"), icon: Settings },
+    ];
+  };
+
+  const menuItems = getMenuItems();
 
   const getPageTitle = () => {
     if (location.pathname === "/") return null;
-    if (location.pathname === "/courses") return "Courses";
-    if (location.pathname === "/students")
-      return "Student Management";
-    if (location.pathname === "/attendance")
-      return "Attendance";
-    if (location.pathname === "/reports") return "Reports";
-    if (location.pathname === "/settings") return "Settings";
-    if (location.pathname === "/user-management") return "User Management";
+    if (location.pathname === "/courses") return user.role === "STUDENT" ? t("menu.my_courses") : t("menu.courses");
+    if (location.pathname === "/students") return t("menu.student_management");
+    if (location.pathname === "/attendance") return t("menu.attendance");
+    if (location.pathname === "/learning-materials") return t("menu.learning_materials");
+    if (location.pathname === "/reports") return t("menu.reports");
+    if (location.pathname === "/settings") return t("menu.settings");
+    if (location.pathname === "/user-management") return t("menu.user_management");
+    if (location.pathname === "/learning-path") return t("menu.learning_path");
+    if (location.pathname === "/ai-speaking") return t("menu.ai_speaking");
+    if (location.pathname === "/flashcards") return t("menu.flashcards");
+    if (location.pathname === "/achievements") return t("menu.achievements");
     return null;
   };
 
@@ -240,13 +267,14 @@ export function Layout() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder={t("search.placeholder")}
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A73E8] focus:border-transparent"
                 />
               </div>
             )}
           </div>
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -268,7 +296,7 @@ export function Layout() {
               <button 
                 onClick={handleLogout}
                 className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center"
-                title="Logout"
+                title={t("header.logout")}
               >
                 <LogOut className="w-5 h-5" />
               </button>

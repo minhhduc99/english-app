@@ -16,8 +16,10 @@ import { StudentDetailDrawer } from "../components/StudentDetailDrawer";
 import { StudentFormModal } from "../components/StudentFormModal";
 import { DeleteConfirmDialog } from "../components/DeleteConfirmDialog";
 import { toast } from "sonner";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export function StudentManagement() {
+  const { t } = useLanguage();
   const [students, setStudents] = useState<Student[]>([
     {
       id: "1",
@@ -208,8 +210,8 @@ export function StudentManagement() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Student Management</h1>
-          <p className="text-gray-500 mt-1">Manage and organize student information</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("menu.student_management")}</h1>
+          <p className="text-gray-500 mt-1">{t("Manage and organize student information")}</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -217,21 +219,21 @@ export function StudentManagement() {
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Import</span>
+            <span className="hidden sm:inline">{t("Import")}</span>
           </button>
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">{t("Export")}</span>
           </button>
           <button
             onClick={handleAddStudent}
             className="flex items-center gap-2 px-4 py-2 bg-[#1A73E8] text-white rounded-lg hover:bg-[#1557B0] transition-colors"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Student</span>
+            <span>{t("Add Student")}</span>
           </button>
         </div>
       </div>
@@ -241,7 +243,7 @@ export function StudentManagement() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Total Students</p>
+              <p className="text-sm text-gray-500 mb-1">{t("Total Students_Stat")}</p>
               <p className="text-3xl font-semibold text-gray-900">{totalStudents}</p>
             </div>
             <div className="w-12 h-12 bg-[#E8F0FE] rounded-lg flex items-center justify-center">
@@ -252,7 +254,7 @@ export function StudentManagement() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Active Students</p>
+              <p className="text-sm text-gray-500 mb-1">{t("Active Students")}</p>
               <p className="text-3xl font-semibold text-gray-900">{activeStudents}</p>
             </div>
             <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
@@ -299,11 +301,11 @@ export function StudentManagement() {
           </select>
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
             <Filter className="w-4 h-4" />
-            <span>Filter</span>
+            <span>{t("Filter")}</span>
           </button>
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
             <ArrowUpDown className="w-4 h-4" />
-            <span>Sort</span>
+            <span>{t("Sort")}</span>
           </button>
         </div>
       </div>
@@ -422,7 +424,7 @@ export function StudentManagement() {
         {filteredStudents.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">No students found</p>
+            <p className="text-gray-500">{t("No students found")}</p>
           </div>
         )}
       </div>

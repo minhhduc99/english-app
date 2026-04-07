@@ -1,8 +1,22 @@
-import { useState, useEffect } from "react";
-import { Trophy, Target, Flame, Medal, Crown, Award } from "lucide-react";
-import { Reports as TeacherReports } from "./teacher/Reports";
+import { useState } from "react";
+import { Trophy, Target, Flame, Medal, Crown, Award, TrendingUp, Eye, AlertTriangle } from "lucide-react";
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
-function AdminReports() {
+export function Reports() {
   const [selectedClass, setSelectedClass] = useState("Class 10A");
 
   const classes = ["Class 10A", "Class 10B", "Class 11A", "Class 11B", "Class 12A", "Class 12B"];
@@ -61,6 +75,70 @@ function AdminReports() {
     if (rank === 2) return <Medal className="w-4 h-4" />;
     if (rank === 3) return <Award className="w-4 h-4" />;
     return null;
+  };
+
+  // Skill Analytics Radar Chart Data
+  const skillData = [
+    { skill: "Vocabulary", score: 85, fullMark: 100 },
+    { skill: "Speaking", score: 78, fullMark: 100 },
+    { skill: "Grammar", score: 92, fullMark: 100 },
+    { skill: "Reading", score: 88, fullMark: 100 },
+    { skill: "Writing", score: 75, fullMark: 100 },
+    { skill: "Attendance", score: 94, fullMark: 100 },
+  ];
+
+  // Class Comparison Bar Chart Data
+  const classComparisonData = [
+    { class: "Class 10A", vocabulary: 85, speaking: 78, grammar: 92, attendance: 94 },
+    { class: "Class 10B", vocabulary: 82, speaking: 75, grammar: 88, attendance: 89 },
+    { class: "Class 11A", vocabulary: 88, speaking: 82, grammar: 90, attendance: 92 },
+  ];
+
+  // Top Students Leaderboard
+  const topStudents = [
+    { rank: 1, name: "Emma Wilson", class: "Class 10A", points: 2456, avatar: "EW" },
+    { rank: 2, name: "James Chen", class: "Class 10A", points: 2398, avatar: "JC" },
+    { rank: 3, name: "Sarah Johnson", class: "Class 10B", points: 2287, avatar: "SJ" },
+    { rank: 4, name: "Michael Brown", class: "Class 11A", points: 2156, avatar: "MB" },
+    { rank: 5, name: "Olivia Davis", class: "Class 10A", points: 2098, avatar: "OD" },
+  ];
+
+  // Students to Watch
+  const studentsToWatch = [
+    {
+      name: "Daniel Martinez",
+      class: "Class 10B",
+      issue: "Homework completion below 50%",
+      severity: "high",
+      avatar: "DM",
+    },
+    {
+      name: "Sophia Anderson",
+      class: "Class 11A",
+      issue: "3 consecutive absences",
+      severity: "high",
+      avatar: "SA",
+    },
+    {
+      name: "Liam Taylor",
+      class: "Class 10A",
+      issue: "Speaking score declining",
+      severity: "medium",
+      avatar: "LT",
+    },
+    {
+      name: "Ava Thomas",
+      class: "Class 10B",
+      issue: "Needs additional support",
+      severity: "medium",
+      avatar: "AT",
+    },
+  ];
+
+  const getSeverityColor = (severity: string) => {
+    if (severity === "high") return "bg-red-50 text-red-700 border-red-200";
+    if (severity === "medium") return "bg-orange-50 text-orange-700 border-orange-200";
+    return "bg-yellow-50 text-yellow-700 border-yellow-200";
   };
 
   return (
@@ -280,27 +358,179 @@ function AdminReports() {
           </table>
         </div>
       </div>
+
+      {/* Skill Analytics Radar Chart */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-[#1A73E8] to-[#1557B0] p-6">
+          <div className="flex items-center gap-3 text-white">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Trophy className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Skill Analytics</h2>
+              <p className="text-sm text-white/90">Radar chart of skill scores</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillData}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="skill" />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} />
+              <Radar name="Score" dataKey="score" stroke="#1A73E8" fill="#1A73E8" fillOpacity={0.6} />
+              <Radar name="Full Mark" dataKey="fullMark" stroke="#FF5733" fill="#FF5733" fillOpacity={0.6} />
+              <Legend />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Class Comparison Bar Chart */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-600 to-purple-800 p-6">
+          <div className="flex items-center gap-3 text-white">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Target className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Class Comparison</h2>
+              <p className="text-sm text-white/90">Bar chart of class performance</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={classComparisonData}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="class" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="vocabulary" fill="#1A73E8" />
+              <Bar dataKey="speaking" fill="#FF5733" />
+              <Bar dataKey="grammar" fill="#FFC300" />
+              <Bar dataKey="attendance" fill="#33FF57" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Top Students Leaderboard */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-[#1A73E8] to-[#1557B0] p-6">
+          <div className="flex items-center gap-3 text-white">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Trophy className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Top Students Leaderboard</h2>
+              <p className="text-sm text-white/90">Top students by points</p>
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Points</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avatar</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {topStudents.map((student) => (
+                <tr key={student.rank} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className={`w-10 h-10 ${getRankColor(student.rank)} rounded-lg flex items-center justify-center font-bold text-sm`}>
+                      {getRankIcon(student.rank) || student.rank}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#1A73E8] rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        {student.avatar}
+                      </div>
+                      <span className="font-medium text-gray-900">{student.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{student.class}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{student.points.toLocaleString()}</td>
+                  <td className="px-6 py-4">
+                    <div className="w-10 h-10 bg-[#1A73E8] rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      {student.avatar}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Students to Watch */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 p-6">
+          <div className="flex items-center gap-3 text-white">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+              <Flame className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Students to Watch</h2>
+              <p className="text-sm text-white/90">Students with issues</p>
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issue</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Severity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avatar</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {studentsToWatch.map((student) => (
+                <tr key={student.name} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        {student.avatar}
+                      </div>
+                      <span className="font-medium text-gray-900">{student.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{student.class}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{student.issue}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 ${getSeverityColor(student.severity)} rounded-full text-xs font-medium`}>
+                      {student.severity.charAt(0).toUpperCase() + student.severity.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      {student.avatar}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
-}
-
-export function Reports() {
-  const [role, setRole] = useState<string>("ADMIN");
-  
-  useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user.role) {
-        setRole(user.role);
-      }
-    } catch (e) {
-      // default
-    }
-  }, []);
-
-  if (role === "TEACHER") {
-    return <TeacherReports />;
-  }
-
-  return <AdminReports />;
 }

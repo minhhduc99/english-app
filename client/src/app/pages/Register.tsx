@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { BookOpen } from "lucide-react";
+import { useLanguage } from "../contexts/LanguageContext";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 
 export function Register() {
+  const { t } = useLanguage();
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -53,17 +56,20 @@ export function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center flex-col items-center">
           <div className="w-12 h-12 bg-[#1A73E8] rounded-xl flex items-center justify-center mb-4 shadow-sm">
             <BookOpen className="w-8 h-8 text-white" />
           </div>
           <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+            {t("auth.create_title")}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Join EduLMS and experience smart learning
+            {t("auth.join_subtitle")}
           </p>
         </div>
       </div>
@@ -75,8 +81,8 @@ export function Register() {
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
               </div>
-              <h3 className="text-xl font-medium text-gray-900 mb-2">Registration Successful!</h3>
-              <p className="text-gray-500">Redirecting to login...</p>
+              <h3 className="text-xl font-medium text-gray-900 mb-2">{t("auth.registering")}</h3>
+              <p className="text-gray-500">{t("auth.redirecting")}</p>
             </div>
           ) : (
             <form className="space-y-6" onSubmit={handleRegister}>
@@ -88,7 +94,7 @@ export function Register() {
               
               <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">First name</label>
+                  <label className="block text-sm font-medium text-gray-700">{t("auth.firstname")}</label>
                   <div className="mt-1">
                     <input
                       type="text"
@@ -102,7 +108,7 @@ export function Register() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Last name</label>
+                  <label className="block text-sm font-medium text-gray-700">{t("auth.lastname")}</label>
                   <div className="mt-1">
                     <input
                       type="text"
@@ -117,7 +123,7 @@ export function Register() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Email address</label>
+                <label className="block text-sm font-medium text-gray-700">{t("auth.email")}</label>
                 <div className="mt-1">
                   <input
                     type="email"
@@ -131,7 +137,7 @@ export function Register() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Username</label>
+                <label className="block text-sm font-medium text-gray-700">{t("auth.username")}</label>
                 <div className="mt-1">
                   <input
                     type="text"
@@ -145,7 +151,7 @@ export function Register() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <label className="block text-sm font-medium text-gray-700">{t("auth.password")}</label>
                 <div className="mt-1">
                   <input
                     type="password"
@@ -163,7 +169,7 @@ export function Register() {
                   type="submit"
                   className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[#1A73E8] hover:bg-[#1557b0] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A73E8] transition-colors"
                 >
-                  Create Account
+                  {t("auth.create_account")}
                 </button>
               </div>
             </form>
@@ -176,7 +182,7 @@ export function Register() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
-                  Already have an account?
+                  {t("auth.already_have")}
                 </span>
               </div>
             </div>
@@ -186,7 +192,7 @@ export function Register() {
                 to="/login"
                 className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A73E8] transition-colors"
               >
-                Sign in to your account
+                {t("auth.signin_to")}
               </Link>
             </div>
           </div>
