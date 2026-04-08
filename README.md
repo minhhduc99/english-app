@@ -29,7 +29,13 @@ We use **Polyglot Persistence**: PostgreSQL for relational data, Pinecone for Ve
 | attendance | id (BIGINT), student_id, class_id, date, status | Range Partitioning by date (Yearly/Monthly) |
 | attendance_logs | att_id, old_status, new_status, updated_by | Audit trail for modifications |
 
-### 2.3. Learning Materials & AI Knowledge
+### 2.3. Courses Management
+
+| Table | Fields | Note |
+|---|---|---|
+| courses | id (UUID PK), name, course_code (UNIQUE), level, start_date, end_date, study_schedule, max_attendants, description, status, created_by (FK) | **Level**: BEGINNER, ELEMENTARY, INTERMEDIATE, UPPER_INTERMEDIATE, ADVANCED. **Status**: DRAFT, ACTIVE, COMPLETED, CANCELLED |
+
+### 2.4. Learning Materials & AI Knowledge
 
 | Table | Fields | Note |
 |---|---|---|
@@ -37,7 +43,7 @@ We use **Polyglot Persistence**: PostgreSQL for relational data, Pinecone for Ve
 | media_assets | id, lesson_id, file_url, file_type, is_synced | Managed in Garage S3. `is_synced` flags AI readiness |
 | vocabularies | id, lesson_id, word, ipa, definition | Target data for Flashcards and AI prompts |
 
-### 2.4. AI Conversations (Real-time & Partitioned)
+### 2.5. AI Conversations (Real-time & Partitioned)
 
 | Table | Fields | Strategy |
 |---|---|---|
@@ -89,6 +95,7 @@ core-service/
 │   ├── modules/
 │   │   ├── users/           # Separate Accounts/Profiles logic
 │   │   ├── attendance/      # Handles partitioned table interaction
+│   │   ├── courses/         # Course CRUD management (ADMIN/MANAGER)
 │   │   ├── lessons/         # Manages course material & interacts with Garage S3
 │   │   ├── queue/           # BullMQ Producer (Document heavy lifting)
 │   │   └── webhooks/        # Endpoint to receive responses from AI Service
@@ -151,7 +158,60 @@ Used by the React Client for the administrative overview.
       ...
     ]
   }
+   ```
+
+### 7.3. Courses API (CoursesModule)
+
+Full CRUD for course management. Access restricted to `ADMIN` and `MANAGER` roles.
+
+#### Create Course
+- **Endpoint:** `POST /api/courses`
+- **Security:** Requires `ADMIN` or `MANAGER` role.
+- **Request Body:**
+  ```json
+  {
+    "name": "IELTS Foundation",
+    "courseCode": "IELTS-001",
+    "level": "INTERMEDIATE",
+    "startDate": "2026-05-01",
+    "endDate": "2026-08-31",
+    "studySchedule": "Mon, Wed, Fri 18:00-20:00",
+    "maxAttendants": 30,
+    "description": "Foundation course for IELTS preparation"
+  }
   ```
+- **Level values:** `BEGINNER`, `ELEMENTARY`, `INTERMEDIATE`, `UPPER_INTERMEDIATE`, `ADVANCED`
+- **Response:** `201` Returns the created course object.
+
+#### List All Courses
+- **Endpoint:** `GET /api/courses?search=ielts`
+- **Security:** Requires `ADMIN` or `MANAGER` role.
+- **Query Params:** `search` (optional) — filters by name or course code.
+- **Response:** `200` Returns an array of course objects.
+
+#### Get Course by ID
+- **Endpoint:** `GET /api/courses/:id`
+- **Security:** Requires `ADMIN` or `MANAGER` role.
+- **Response:** `200` Returns the course object. `404` if not found.
+
+#### Update Course
+- **Endpoint:** `PUT /api/courses/:id`
+- **Security:** Requires `ADMIN` or `MANAGER` role.
+- **Request Body:** Partial — only include fields to update.
+  ```json
+  {
+    "name": "IELTS Advanced",
+    "level": "ADVANCED",
+    "status": "ACTIVE"
+  }
+  ```
+- **Status values:** `DRAFT`, `ACTIVE`, `COMPLETED`, `CANCELLED`
+- **Response:** `200` Returns the updated course object.
+
+#### Delete Course
+- **Endpoint:** `DELETE /api/courses/:id`
+- **Security:** Requires `ADMIN` or `MANAGER` role.
+- **Response:** `200` Returns confirmation message.
 
 ## 8. Running the Services (Development)
 
@@ -163,6 +223,22 @@ The system requires external services (PostgreSQL, Redis, Garage S3) to be runni
 ```bash
 docker compose up -d
 ```
+
+> **Database Migration Scripts** are located in `core-service/src/init-scripts/`.
+> They auto-run on first `docker compose up` via PostgreSQL's `docker-entrypoint-initdb.d`.
+>
+> | Script | Purpose |
+> |---|---|
+> | `01-init.sql` | Base schema: accounts, profiles, classes, attendance, lessons, AI tables |
+> | `02-courses.sql` | Courses table with level/status enums, constraints, and indexes |
+>
+> **For existing databases**, run the new migration manually:
+> ```bash
+> # Connect to PostgreSQL and execute the migration
+> docker exec -i lms-postgres psql -U lms_admin -d lms_db < core-service/src/init-scripts/02-courses.sql
+> ```
+>
+> **Note:** Since `synchronize: true` is enabled in TypeORM config, the `courses` table will also be auto-created by the NestJS entity on service startup. The SQL script is provided for production-grade manual migrations.
 
 ### 7.2. NestJS Core Service (NestJS)
 

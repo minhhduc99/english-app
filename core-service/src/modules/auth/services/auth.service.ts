@@ -78,7 +78,7 @@ export class AuthService {
       message: 'Login successful',
       user: result,
       requiresPasswordChange: user.isTemporaryPassword,
-      token: 'real-db-backed-token-placeholder'
+      token: Buffer.from(user.id).toString('base64')
     };
   }
 
