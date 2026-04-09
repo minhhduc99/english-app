@@ -57,6 +57,30 @@ export class CoursesController {
     return this.coursesService.findAll(search);
   }
 
+  @Get('students/available')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Get all system students' })
+  async getAvailableStudents() {
+    return this.coursesService.getAvailableStudents();
+  }
+
+  @Get(':id/members')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  @ApiOperation({ summary: 'Get assigned students' })
+  async getMembers(@Param('id', ParseUUIDPipe) id: string) {
+    return this.coursesService.getMembers(id);
+  }
+
+  @Post(':id/members')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Assign students to course' })
+  async assignStudents(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('studentIds') studentIds: string[],
+  ) {
+    return this.coursesService.assignStudents(id, studentIds || []);
+  }
+
   /**
    * Get a single course by ID.
    * Access: ADMIN, MANAGER

@@ -1,33 +1,48 @@
-import { Search, Filter, RotateCcw, Save } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Filter, RotateCcw, Save, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface Student {
-  id: string;
-  studentId: string;
+  id: string; // The UUID required by DB
+  studentId: string; // Internal custom identifier
   fullName: string;
   avatar: string;
-  status: 'present' | 'absent' | 'late' | null;
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | null;
 }
 
-const mockStudents: Student[] = [
-  { id: '1', studentId: 'STU001', fullName: 'Emma Johnson', avatar: 'EJ', status: null },
-  { id: '2', studentId: 'STU002', fullName: 'Michael Chen', avatar: 'MC', status: null },
-  { id: '3', studentId: 'STU003', fullName: 'Sarah Williams', avatar: 'SW', status: null },
-  { id: '4', studentId: 'STU004', fullName: 'David Martinez', avatar: 'DM', status: null },
-  { id: '5', studentId: 'STU005', fullName: 'Lisa Anderson', avatar: 'LA', status: null },
-  { id: '6', studentId: 'STU006', fullName: 'James Taylor', avatar: 'JT', status: null },
-  { id: '7', studentId: 'STU007', fullName: 'Emily Brown', avatar: 'EB', status: null },
-  { id: '8', studentId: 'STU008', fullName: 'Robert Garcia', avatar: 'RG', status: null },
-  { id: '9', studentId: 'STU009', fullName: 'Jennifer Lee', avatar: 'JL', status: null },
-  { id: '10', studentId: 'STU010', fullName: 'Christopher Kim', avatar: 'CK', status: null },
-];
-
-export function DirectAttendanceChecklist() {
-  const [students, setStudents] = useState<Student[]>(mockStudents);
+export function DirectAttendanceChecklist({ classId: courseId }: { classId?: string }) {
+  const { t } = useLanguage();
+  const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [learningDate, setLearningDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleStatusChange = (studentId: string, status: 'present' | 'absent' | 'late') => {
+  const getAuthHeader = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user.token || localStorage.getItem('token') || '';
+    } catch {
+      return '';
+    }
+  };
+
+  useEffect(() => {
+    if (courseId) {
+      fetch(`/api/courses/${courseId}/members`, {
+        headers: { Authorization: `Bearer ${getAuthHeader()}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setStudents((data || []).map((s: any) => ({ ...s, status: null })));
+        })
+        .catch(() => setStudents([]));
+    } else {
+      setStudents([]);
+    }
+  }, [courseId]);
+
+  const handleStatusChange = (studentId: string, status: Student['status']) => {
     setStudents(students.map(student => 
       student.id === studentId ? { ...student, status } : student
     ));
@@ -37,29 +52,65 @@ export function DirectAttendanceChecklist() {
     setStudents(students.map(student => ({ ...student, status: null })));
   };
 
-  const handleSave = () => {
-    console.log('Saving attendance:', students);
-    alert('Attendance saved successfully!');
+  const handleSave = async () => {
+    if (!courseId) return alert('Select a course first');
+    const records = students
+      .filter(s => s.status !== null)
+      .map(s => ({
+        studentId: s.id,
+        status: s.status as string
+      }));
+
+    if (records.length === 0) {
+      return alert('Please mark attendance for at least one student');
+    }
+
+    try {
+      setIsSaving(true);
+      const res = await fetch('/api/attendance/take', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthHeader()}`
+        },
+        body: JSON.stringify({
+          classId: courseId,
+          date: learningDate,
+          records: records
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to save attendance');
+      }
+
+      alert(t('attendance.success_save'));
+    } catch (error: any) {
+      alert(t('attendance.error') + ' / ' + error.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.studentId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || student.status === statusFilter?.toUpperCase();
     return matchesSearch && matchesStatus;
   });
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       <div className="p-6 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Direct Attendance Checklist</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('attendance.direct_title')}</h2>
         
-        <div className="flex items-center gap-4">
-          <div className="flex-1 relative">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name or ID..."
+              placeholder={t('attendance.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -70,15 +121,22 @@ export function DirectAttendanceChecklist() {
             <Filter className="w-5 h-5 text-gray-600" />
           </button>
           
+          <input
+            type="date"
+            value={learningDate}
+            onChange={(e) => setLearningDate(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm min-w-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">All Status</option>
-            <option value="present">Present</option>
-            <option value="absent">Absent</option>
-            <option value="late">Late</option>
+            <option value="all">{t('attendance.status_all')}</option>
+            <option value="present">{t('attendance.status_present')}</option>
+            <option value="absent">{t('attendance.status_absent')}</option>
+            <option value="late">{t('attendance.status_late')}</option>
           </select>
         </div>
       </div>
@@ -88,16 +146,16 @@ export function DirectAttendanceChecklist() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Avatar
+                {t('attendance.col_avatar')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Student ID
+                {t('attendance.col_id')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Full Name
+                {t('attendance.col_name')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
+                {t('attendance.col_status')}
               </th>
             </tr>
           </thead>
@@ -121,31 +179,31 @@ export function DirectAttendanceChecklist() {
                       <input
                         type="radio"
                         name={`status-${student.id}`}
-                        checked={student.status === 'present'}
-                        onChange={() => handleStatusChange(student.id, 'present')}
+                        checked={student.status === 'PRESENT'}
+                        onChange={() => handleStatusChange(student.id, 'PRESENT')}
                         className="w-4 h-4 text-green-600 focus:ring-green-500 focus:ring-2"
                       />
-                      <span className="ml-2 text-sm font-medium text-green-600">Present</span>
+                      <span className="ml-2 text-sm font-medium text-green-600">{t('attendance.status_present')}</span>
                     </label>
                     <label className="inline-flex items-center cursor-pointer">
                       <input
                         type="radio"
                         name={`status-${student.id}`}
-                        checked={student.status === 'absent'}
-                        onChange={() => handleStatusChange(student.id, 'absent')}
+                        checked={student.status === 'ABSENT'}
+                        onChange={() => handleStatusChange(student.id, 'ABSENT')}
                         className="w-4 h-4 text-red-600 focus:ring-red-500 focus:ring-2"
                       />
-                      <span className="ml-2 text-sm font-medium text-red-600">Absent</span>
+                      <span className="ml-2 text-sm font-medium text-red-600">{t('attendance.status_absent')}</span>
                     </label>
                     <label className="inline-flex items-center cursor-pointer">
                       <input
                         type="radio"
                         name={`status-${student.id}`}
-                        checked={student.status === 'late'}
-                        onChange={() => handleStatusChange(student.id, 'late')}
+                        checked={student.status === 'LATE'}
+                        onChange={() => handleStatusChange(student.id, 'LATE')}
                         className="w-4 h-4 text-orange-600 focus:ring-orange-500 focus:ring-2"
                       />
-                      <span className="ml-2 text-sm font-medium text-orange-600">Late</span>
+                      <span className="ml-2 text-sm font-medium text-orange-600">{t('attendance.status_late')}</span>
                     </label>
                   </div>
                 </td>
@@ -161,14 +219,15 @@ export function DirectAttendanceChecklist() {
           className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          Reset
+          {t('attendance.reset')}
         </button>
         <button
           onClick={handleSave}
-          className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          disabled={isSaving}
+          className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          <Save className="w-4 h-4" />
-          Save Attendance
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {t('attendance.save')}
         </button>
       </div>
     </div>

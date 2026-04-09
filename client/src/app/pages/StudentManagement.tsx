@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -20,97 +20,9 @@ import { useLanguage } from "../contexts/LanguageContext";
 
 export function StudentManagement() {
   const { t } = useLanguage();
-  const [students, setStudents] = useState<Student[]>([
-    {
-      id: "1",
-      studentId: "STU001",
-      name: "Emma Johnson",
-      gender: "Female",
-      dateOfBirth: "2010-05-15",
-      class: "Class 5A",
-      email: "emma.johnson@school.edu",
-      phone: "+1 (555) 123-4567",
-      status: "Active",
-    },
-    {
-      id: "2",
-      studentId: "STU002",
-      name: "Michael Chen",
-      gender: "Male",
-      dateOfBirth: "2010-08-22",
-      class: "Class 5A",
-      email: "michael.chen@school.edu",
-      phone: "+1 (555) 234-5678",
-      status: "Active",
-    },
-    {
-      id: "3",
-      studentId: "STU003",
-      name: "Sophia Martinez",
-      gender: "Female",
-      dateOfBirth: "2011-03-10",
-      class: "Class 4B",
-      email: "sophia.martinez@school.edu",
-      phone: "+1 (555) 345-6789",
-      status: "Active",
-    },
-    {
-      id: "4",
-      studentId: "STU004",
-      name: "James Wilson",
-      gender: "Male",
-      dateOfBirth: "2010-11-30",
-      class: "Class 5B",
-      email: "james.wilson@school.edu",
-      phone: "+1 (555) 456-7890",
-      status: "Active",
-    },
-    {
-      id: "5",
-      studentId: "STU005",
-      name: "Olivia Brown",
-      gender: "Female",
-      dateOfBirth: "2011-01-18",
-      class: "Class 4A",
-      email: "olivia.brown@school.edu",
-      phone: "+1 (555) 567-8901",
-      status: "Inactive",
-    },
-    {
-      id: "6",
-      studentId: "STU006",
-      name: "Noah Davis",
-      gender: "Male",
-      dateOfBirth: "2010-07-25",
-      class: "Class 5A",
-      email: "noah.davis@school.edu",
-      phone: "+1 (555) 678-9012",
-      status: "Active",
-    },
-    {
-      id: "7",
-      studentId: "STU007",
-      name: "Ava Garcia",
-      gender: "Female",
-      dateOfBirth: "2011-04-12",
-      class: "Class 4B",
-      email: "ava.garcia@school.edu",
-      phone: "+1 (555) 789-0123",
-      status: "Active",
-    },
-    {
-      id: "8",
-      studentId: "STU008",
-      name: "Liam Anderson",
-      gender: "Male",
-      dateOfBirth: "2010-09-08",
-      class: "Class 5B",
-      email: "liam.anderson@school.edu",
-      phone: "+1 (555) 890-1234",
-      status: "Active",
-    },
-  ]);
-
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState("All Classes");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -120,26 +32,42 @@ export function StudentManagement() {
   const [formMode, setFormMode] = useState<"add" | "edit">("add");
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
-  const classes = [
-    "All Classes",
-    "Class 1A",
-    "Class 1B",
-    "Class 2A",
-    "Class 2B",
-    "Class 3A",
-    "Class 3B",
-    "Class 4A",
-    "Class 4B",
-    "Class 5A",
-    "Class 5B",
-  ];
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const [studentsRes, coursesRes] = await Promise.all([
+        fetch("/api/users/students", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+        fetch("/api/courses", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+      ]);
+
+      if (!studentsRes.ok || !coursesRes.ok) throw new Error("Failed to fetch data");
+      
+      const studentsData = await studentsRes.json();
+      const coursesData = await coursesRes.json();
+      
+      setStudents(studentsData);
+      setCourses(coursesData);
+    } catch (error) {
+      toast.error("Failed to load students");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
 
   const filteredStudents = students.filter((student) => {
     const matchesSearch =
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesClass = selectedClass === "All Classes" || student.class === selectedClass;
+    const matchesClass = selectedClass === "All Classes" || student.class.includes(selectedClass);
     return matchesSearch && matchesClass;
   });
 
@@ -165,33 +93,65 @@ export function StudentManagement() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (studentToDelete) {
-      setStudents(students.filter((s) => s.id !== studentToDelete.id));
-      toast.success(`${studentToDelete.name} has been deleted successfully`);
+      try {
+        const res = await fetch(`/api/users/students/${studentToDelete.id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        if (!res.ok) throw new Error("Failed to delete");
+        setStudents(students.filter((s) => s.id !== studentToDelete.id));
+        toast.success(`${studentToDelete.name} has been deleted successfully`);
+      } catch (err) {
+        toast.error("Error deleting student");
+      }
       setIsDeleteDialogOpen(false);
       setStudentToDelete(null);
     }
   };
 
-  const handleSaveStudent = (studentData: Omit<Student, "id">) => {
-    if (formMode === "add") {
-      const newStudent: Student = {
-        ...studentData,
-        id: Date.now().toString(),
-      };
-      setStudents([...students, newStudent]);
-      toast.success("Student added successfully");
-    } else if (formMode === "edit" && selectedStudent) {
-      setStudents(
-        students.map((s) =>
-          s.id === selectedStudent.id ? { ...studentData, id: s.id } : s
-        )
-      );
-      toast.success("Student updated successfully");
+  const handleSaveStudent = async (studentData: Omit<Student, "id"> & { password?: string }) => {
+    try {
+      if (formMode === "add") {
+        const payload = {
+          username: studentData.studentId,
+          fullName: studentData.name,
+          email: studentData.email,
+          password: studentData.password || "Student@123", // fallback
+        };
+        const res = await fetch("/api/auth/student", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || "Failed to add student");
+        }
+        
+        toast.success("Student added successfully");
+        fetchStudents(); // Refresh list
+      } else if (formMode === "edit" && selectedStudent) {
+        // Backend updating not fully implemented for standard fields, but could be added later
+        toast.info("Edit functionality on backend pending");
+        setStudents(
+          students.map((s) =>
+            s.id === selectedStudent.id ? { ...s, name: studentData.name, email: studentData.email } : s
+          )
+        );
+      }
+      setIsFormModalOpen(false);
+      setSelectedStudent(null);
+    } catch (e: any) {
+      toast.error(e.message);
     }
-    setIsFormModalOpen(false);
-    setSelectedStudent(null);
   };
 
   const handleImport = () => {
@@ -293,9 +253,10 @@ export function StudentManagement() {
             onChange={(e) => setSelectedClass(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A73E8] focus:border-transparent"
           >
-            {classes.map((className) => (
-              <option key={className} value={className}>
-                {className}
+            <option value="All Classes">All Classes</option>
+            {courses.map((course) => (
+              <option key={course.id} value={course.name}>
+                {course.name}
               </option>
             ))}
           </select>
@@ -312,10 +273,15 @@ export function StudentManagement() {
 
       {/* Students Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading students...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Avatar
                 </th>
@@ -420,8 +386,9 @@ export function StudentManagement() {
             </tbody>
           </table>
         </div>
+        )}
 
-        {filteredStudents.length === 0 && (
+        {!loading && filteredStudents.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">{t("No students found")}</p>

@@ -213,6 +213,39 @@ Full CRUD for course management. Access restricted to `ADMIN` and `MANAGER` role
 - **Security:** Requires `ADMIN` or `MANAGER` role.
 - **Response:** `200` Returns confirmation message.
 
+### 7.4. Attendance API (AttendanceModule)
+Full API to handle roll call and attendance spreadsheet management.
+
+#### Take Attendance (Directly)
+- **Endpoint:** `POST /api/attendance/take`
+- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
+- **Request Body:**
+  ```json
+  {
+    "classId": "uuid",
+    "date": "2026-04-09",
+    "records": [
+      { "studentId": "uuid", "status": "PRESENT" },
+      { "studentId": "uuid", "status": "ABSENT" }
+    ]
+  }
+  ```
+- **Response:** `201` Returns success message.
+
+#### Export Attendance Template
+- **Endpoint:** `GET /api/attendance/export/:classId`
+- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
+- **Response:** `200` Downloads `attendance_template_{classId}.xlsx` containing all active students.
+
+#### Import Attendance from Excel
+- **Endpoint:** `POST /api/attendance/import/:classId`
+- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
+- **Request Format:** `multipart/form-data`
+  - `file`: The Excel `.xlsx` file filled directly from the exported template.
+  - `date`: Ensure passing formatted string `YYYY-MM-DD`.
+- **Response:** `201` Returns success message.
+
+
 ## 8. Running the Services (Development)
 
 

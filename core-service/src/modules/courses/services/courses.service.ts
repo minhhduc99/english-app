@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Course } from '../entities/course.entity';
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class CoursesService {
@@ -12,6 +13,7 @@ export class CoursesService {
   constructor(
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -117,5 +119,69 @@ export class CoursesService {
     const course = await this.findOne(id);
     await this.courseRepository.remove(course);
     return { message: `Course "${course.name}" has been deleted.` };
+  }
+
+  /**
+   * Assign students to course via course_students junction table.
+   * Uses the ORM 'users' table. Creates the table on first use.
+   */
+  async assignStudents(courseId: string, studentIds: string[]): Promise<{ message: string }> {
+    // Ensure the join table exists (idempotent)
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_students (
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        user_id   UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+        status    VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        PRIMARY KEY (course_id, user_id)
+      )
+    `);
+
+    for (const studentId of studentIds) {
+      await this.dataSource.query(
+        `INSERT INTO course_students (course_id, user_id, status)
+         VALUES ($1, $2, 'ACTIVE')
+         ON CONFLICT (course_id, user_id) DO UPDATE SET status = 'ACTIVE'`,
+        [courseId, studentId]
+      );
+    }
+    return { message: 'Students assigned successfully.' };
+  }
+
+  /**
+   * Get members assigned to this course (from course_students).
+   */
+  async getMembers(courseId: string) {
+    // Ensure table exists before querying
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_students (
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        user_id   UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+        status    VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        PRIMARY KEY (course_id, user_id)
+      )
+    `);
+    return this.dataSource.query(`
+      SELECT
+        cs.user_id AS id,
+        u."fullName",
+        'STU-' || UPPER(SUBSTR(u.id::text, 1, 6)) AS "studentId",
+        UPPER(SUBSTR(u."fullName", 1, 1)) AS avatar
+      FROM course_students cs
+      JOIN users u ON cs.user_id = u.id
+      WHERE cs.course_id = $1 AND cs.status = 'ACTIVE'
+      ORDER BY u."fullName"
+    `, [courseId]);
+  }
+
+  /**
+   * Get all students in the system from ORM-managed users table.
+   */
+  async getAvailableStudents() {
+    return this.dataSource.query(`
+      SELECT id, "fullName"
+      FROM users
+      WHERE role::text = 'STUDENT'
+      ORDER BY "fullName"
+    `);
   }
 }

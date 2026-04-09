@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { MyCourses as StudentCourses } from "./student/MyCourses";
 import { useLanguage } from "../contexts/LanguageContext";
 import { CourseFormModal, CourseFormData } from "../components/CourseFormModal";
+import { AssignStudentsModal } from "../components/manager/AssignStudentsModal";
 
 interface Course {
   id: string;
@@ -59,6 +60,9 @@ function AdminCourses() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"add" | "edit">("add");
   const [selectedCourse, setSelectedCourse] = useState<CourseFormData | null>(null);
+
+  // Assignment Modal
+  const [assignTarget, setAssignTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
@@ -424,6 +428,13 @@ function AdminCourses() {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => setAssignTarget({ id: course.id, name: course.name })}
+                          className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Assign Students"
+                        >
+                          <Users className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => setDeleteTarget(course)}
                           className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title={t("course.delete_btn")}
@@ -448,6 +459,13 @@ function AdminCourses() {
         course={selectedCourse}
         mode={formMode}
         loading={formLoading}
+      />
+
+      <AssignStudentsModal
+        courseId={assignTarget?.id ?? null}
+        courseName={assignTarget?.name}
+        isOpen={!!assignTarget}
+        onClose={() => setAssignTarget(null)}
       />
 
       {/* Delete Confirmation Dialog */}
