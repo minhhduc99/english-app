@@ -213,6 +213,16 @@ Full CRUD for course management. Access restricted to `ADMIN` and `MANAGER` role
 - **Security:** Requires `ADMIN` or `MANAGER` role.
 - **Response:** `200` Returns confirmation message.
 
+#### Course Members & Assignment
+- **System Options:**
+  - `GET /api/courses/students/available`: Get all available system students.
+  - `GET /api/courses/teachers/available`: Get all available system teachers.
+- **Course Assignment:**
+  - `GET /api/courses/:id/members`: List assigned students to specific course.
+  - `POST /api/courses/:id/members`: Assign students using `{"studentIds": ["uuid", "uuid"]}`.
+  - `GET /api/courses/:id/teachers`: List assigned teachers to specific course.
+  - `POST /api/courses/:id/teachers`: Assign teachers using `{"teacherIds": ["uuid", "uuid"]}`.
+
 ### 7.4. Attendance API (AttendanceModule)
 Full API to handle roll call and attendance spreadsheet management.
 

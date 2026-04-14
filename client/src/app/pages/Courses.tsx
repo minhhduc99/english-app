@@ -15,6 +15,7 @@ import { MyCourses as StudentCourses } from "./student/MyCourses";
 import { useLanguage } from "../contexts/LanguageContext";
 import { CourseFormModal, CourseFormData } from "../components/CourseFormModal";
 import { AssignStudentsModal } from "../components/manager/AssignStudentsModal";
+import { AssignTeachersModal } from "../components/manager/AssignTeachersModal";
 
 interface Course {
   id: string;
@@ -55,14 +56,23 @@ function AdminCourses() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [role, setRole] = useState<string>("ADMIN");
+
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user.role) setRole(user.role);
+    } catch {}
+  }, []);
 
   // Modal state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"add" | "edit">("add");
   const [selectedCourse, setSelectedCourse] = useState<CourseFormData | null>(null);
 
-  // Assignment Modal
-  const [assignTarget, setAssignTarget] = useState<{ id: string; name: string } | null>(null);
+  // Assignment Modals
+  const [assignStudentTarget, setAssignStudentTarget] = useState<{ id: string; name: string } | null>(null);
+  const [assignTeacherTarget, setAssignTeacherTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
@@ -242,14 +252,16 @@ function AdminCourses() {
           <h1 className="text-2xl font-bold text-gray-900">{t("course.page_title")}</h1>
           <p className="text-gray-500 mt-1">{t("course.page_subtitle")}</p>
         </div>
-        <button
-          onClick={handleAdd}
-          id="btn-add-course"
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#1A73E8] text-white rounded-xl hover:bg-[#1557B0] transition-all shadow-lg shadow-blue-100 font-semibold text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {t("course.add_btn")}
-        </button>
+        {role !== "TEACHER" && (
+          <button
+            onClick={handleAdd}
+            id="btn-add-course"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#1A73E8] text-white rounded-xl hover:bg-[#1557B0] transition-all shadow-lg shadow-blue-100 font-semibold text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t("course.add_btn")}
+          </button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -344,9 +356,11 @@ function AdminCourses() {
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {t("course.col_status")}
                   </th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {t("course.col_actions")}
-                  </th>
+                  {role !== "TEACHER" && (
+                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {t("course.col_actions")}
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -418,31 +432,40 @@ function AdminCourses() {
                       </span>
                     </td>
                     {/* Actions */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleEdit(course)}
-                          className="p-2 text-gray-500 hover:text-[#1A73E8] hover:bg-[#E8F0FE] rounded-lg transition-colors"
-                          title={t("course.edit_title")}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setAssignTarget({ id: course.id, name: course.name })}
-                          className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Assign Students"
-                        >
-                          <Users className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(course)}
-                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title={t("course.delete_btn")}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {role !== "TEACHER" && (
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEdit(course)}
+                            className="p-2 text-gray-500 hover:text-[#1A73E8] hover:bg-[#E8F0FE] rounded-lg transition-colors"
+                            title={t("course.edit_title")}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setAssignTeacherTarget({ id: course.id, name: course.name })}
+                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Assign Teachers"
+                          >
+                            <GraduationCap className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setAssignStudentTarget({ id: course.id, name: course.name })}
+                            className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Assign Students"
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(course)}
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title={t("course.delete_btn")}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -462,10 +485,17 @@ function AdminCourses() {
       />
 
       <AssignStudentsModal
-        courseId={assignTarget?.id ?? null}
-        courseName={assignTarget?.name}
-        isOpen={!!assignTarget}
-        onClose={() => setAssignTarget(null)}
+        courseId={assignStudentTarget?.id ?? null}
+        courseName={assignStudentTarget?.name}
+        isOpen={!!assignStudentTarget}
+        onClose={() => setAssignStudentTarget(null)}
+      />
+
+      <AssignTeachersModal
+        courseId={assignTeacherTarget?.id ?? null}
+        courseName={assignTeacherTarget?.name}
+        isOpen={!!assignTeacherTarget}
+        onClose={() => setAssignTeacherTarget(null)}
       />
 
       {/* Delete Confirmation Dialog */}

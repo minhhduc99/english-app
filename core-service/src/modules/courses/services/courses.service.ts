@@ -62,6 +62,36 @@ export class CoursesService {
         { search: `%${search.toLowerCase()}%` },
       );
     }
+    return qb.getMany();
+  }
+
+  /**
+   * Get courses assigned to a specific teacher.
+   */
+  async findForTeacher(teacherId: string, search?: string): Promise<Course[]> {
+    this.logger.log(`Fetching courses for teacher: ${teacherId}`);
+    
+    // Ensure table exists just in case
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_teachers (
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        user_id   UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+        status    VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        PRIMARY KEY (course_id, user_id)
+      )
+    `);
+
+    const qb = this.courseRepository.createQueryBuilder('course')
+      .innerJoin('course_teachers', 'ct', 'ct.course_id = course.id AND ct.user_id = :teacherId', { teacherId })
+      .leftJoinAndSelect('course.creator', 'creator')
+      .orderBy('course.createdAt', 'DESC');
+
+    if (search) {
+      qb.andWhere(
+        '(LOWER(course.name) LIKE :search OR LOWER(course.courseCode) LIKE :search)',
+        { search: `%${search.toLowerCase()}%` },
+      );
+    }
 
     return qb.getMany();
   }
@@ -181,6 +211,69 @@ export class CoursesService {
       SELECT id, "fullName"
       FROM users
       WHERE role::text = 'STUDENT'
+      ORDER BY "fullName"
+    `);
+  }
+
+  /**
+   * Assign teachers to course via course_teachers junction table.
+   */
+  async assignTeachers(courseId: string, teacherIds: string[]): Promise<{ message: string }> {
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_teachers (
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        user_id   UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+        status    VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        PRIMARY KEY (course_id, user_id)
+      )
+    `);
+
+    // Remove existing active teachers to replace them or you can just add
+    // Since UI might send full exact list, it's safer to clear and insert
+    await this.dataSource.query(`DELETE FROM course_teachers WHERE course_id = $1`, [courseId]);
+
+    for (const teacherId of teacherIds) {
+      await this.dataSource.query(
+        `INSERT INTO course_teachers (course_id, user_id, status)
+         VALUES ($1, $2, 'ACTIVE')`,
+        [courseId, teacherId]
+      );
+    }
+    return { message: 'Teachers assigned successfully.' };
+  }
+
+  /**
+   * Get teachers assigned to this course.
+   */
+  async getTeachers(courseId: string) {
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_teachers (
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        user_id   UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+        status    VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        PRIMARY KEY (course_id, user_id)
+      )
+    `);
+    return this.dataSource.query(`
+      SELECT
+        ct.user_id AS id,
+        u."fullName",
+        u.email
+      FROM course_teachers ct
+      JOIN users u ON ct.user_id = u.id
+      WHERE ct.course_id = $1 AND ct.status = 'ACTIVE'
+      ORDER BY u."fullName"
+    `, [courseId]);
+  }
+
+  /**
+   * Get all teachers in the system from users table.
+   */
+  async getAvailableTeachers() {
+    return this.dataSource.query(`
+      SELECT id, "fullName"
+      FROM users
+      WHERE role::text = 'TEACHER'
       ORDER BY "fullName"
     `);
   }

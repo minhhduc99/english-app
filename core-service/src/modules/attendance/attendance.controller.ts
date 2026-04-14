@@ -43,4 +43,9 @@ export class AttendanceController {
   ) {
     return this.attendanceService.importAttendance(classId, dto.date, file, req.user.id);
   }
+  @Get('history/:courseId')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  async getAttendanceHistory(@Param('courseId') courseId: string) {
+    return this.attendanceService.getAttendanceHistory(courseId);
+  }
 }

@@ -160,4 +160,39 @@ export class AttendanceService {
 
     return this.takeAttendance(dto, userId);
   }
+  async getAttendanceHistory(courseId: string) {
+    // Return all distinct dates formatted safely as strings
+    const datesRes = await this.dataSource.query(`
+      SELECT DISTINCT TO_CHAR(date, 'YYYY-MM-DD') as date 
+      FROM course_attendance 
+      WHERE course_id = $1 
+      ORDER BY TO_CHAR(date, 'YYYY-MM-DD') ASC
+    `, [courseId]);
+    const dates = datesRes.map((d: any) => d.date);
+
+    // Return students and their attendance
+    const records = await this.dataSource.query(`
+      SELECT TO_CHAR(ca.date, 'YYYY-MM-DD') as date, ca.status, u.id as student_id, u."fullName" as full_name
+      FROM course_attendance ca
+      JOIN users u ON ca.student_id = u.id
+      WHERE ca.course_id = $1
+    `, [courseId]);
+
+    const studentMap = new Map();
+    for (const r of records) {
+      if (!studentMap.has(r.student_id)) {
+        studentMap.set(r.student_id, {
+          studentId: r.student_id,
+          fullName: r.full_name,
+          attendance: {}
+        });
+      }
+      studentMap.get(r.student_id).attendance[r.date] = r.status;
+    }
+
+    return {
+      dates,
+      students: Array.from(studentMap.values())
+    };
+  }
 }

@@ -47,13 +47,17 @@ export class CoursesController {
 
   /**
    * Get all courses with optional search query.
-   * Access: ADMIN, MANAGER
+   * Access: ADMIN, MANAGER, TEACHER
    */
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
   @ApiOperation({ summary: 'List all courses' })
   @ApiResponse({ status: 200, description: 'Courses retrieved successfully.' })
-  async findAll(@Query('search') search?: string) {
+  async findAll(@Query('search') search?: string, @Request() req?: any) {
+    const userRole = req?.user?.role;
+    if (userRole === Role.TEACHER) {
+       return this.coursesService.findForTeacher(req.user.id, search);
+    }
     return this.coursesService.findAll(search);
   }
 
@@ -62,6 +66,13 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get all system students' })
   async getAvailableStudents() {
     return this.coursesService.getAvailableStudents();
+  }
+
+  @Get('teachers/available')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Get all system teachers' })
+  async getAvailableTeachers() {
+    return this.coursesService.getAvailableTeachers();
   }
 
   @Get(':id/members')
@@ -79,6 +90,23 @@ export class CoursesController {
     @Body('studentIds') studentIds: string[],
   ) {
     return this.coursesService.assignStudents(id, studentIds || []);
+  }
+
+  @Get(':id/teachers')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  @ApiOperation({ summary: 'Get assigned teachers' })
+  async getTeachers(@Param('id', ParseUUIDPipe) id: string) {
+    return this.coursesService.getTeachers(id);
+  }
+
+  @Post(':id/teachers')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Assign teachers to course' })
+  async assignTeachers(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('teacherIds') teacherIds: string[],
+  ) {
+    return this.coursesService.assignTeachers(id, teacherIds || []);
   }
 
   /**
