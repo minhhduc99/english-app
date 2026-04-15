@@ -9,8 +9,10 @@ import {
   Clock,
   GraduationCap,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { MyCourses as StudentCourses } from "./student/MyCourses";
 import { useLanguage } from "../contexts/LanguageContext";
 import { CourseFormModal, CourseFormData } from "../components/CourseFormModal";
@@ -57,6 +59,7 @@ function AdminCourses() {
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [role, setRole] = useState<string>("ADMIN");
+  const navigate = useNavigate();
 
   useEffect(() => {
     try {
@@ -252,7 +255,7 @@ function AdminCourses() {
           <h1 className="text-2xl font-bold text-gray-900">{t("course.page_title")}</h1>
           <p className="text-gray-500 mt-1">{t("course.page_subtitle")}</p>
         </div>
-        {role !== "TEACHER" && (
+        {["ADMIN", "MANAGER"].includes(role) && (
           <button
             onClick={handleAdd}
             id="btn-add-course"
@@ -356,11 +359,9 @@ function AdminCourses() {
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {t("course.col_status")}
                   </th>
-                  {role !== "TEACHER" && (
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {t("course.col_actions")}
-                    </th>
-                  )}
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {t("course.col_actions")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -431,41 +432,26 @@ function AdminCourses() {
                         {statusLabel(course.status)}
                       </span>
                     </td>
-                    {/* Actions */}
-                    {role !== "TEACHER" && (
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => handleEdit(course)}
-                            className="p-2 text-gray-500 hover:text-[#1A73E8] hover:bg-[#E8F0FE] rounded-lg transition-colors"
-                            title={t("course.edit_title")}
+                            onClick={() => navigate(`/courses/${course.id}`)}
+                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title={t("learning_path.review")}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => setAssignTeacherTarget({ id: course.id, name: course.name })}
-                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            title="Assign Teachers"
-                          >
-                            <GraduationCap className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setAssignStudentTarget({ id: course.id, name: course.name })}
-                            className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Assign Students"
-                          >
-                            <Users className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(course)}
-                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title={t("course.delete_btn")}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {["ADMIN", "MANAGER"].includes(role) && (
+                            <button
+                              onClick={() => setDeleteTarget(course)}
+                              className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title={t("course.delete_btn")}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
-                    )}
                   </tr>
                 ))}
               </tbody>

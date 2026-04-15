@@ -97,17 +97,78 @@ export class CoursesService {
   }
 
   /**
+   * Get courses assigned to a specific student.
+   */
+  async findForStudent(studentId: string, search?: string): Promise<any[]> {
+    this.logger.log(`Fetching courses for student: ${studentId}`);
+    
+    // Ensure table exists just in case
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_students (
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        user_id   UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+        status    VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        PRIMARY KEY (course_id, user_id)
+      )
+    `);
+
+    let searchQuery = '';
+    const params: any[] = [studentId];
+
+    if (search) {
+      searchQuery = `AND (LOWER(c.name) LIKE $2 OR LOWER(c.course_code) LIKE $2)`;
+      params.push(`%${search.toLowerCase()}%`);
+    }
+
+    const sql = `
+      SELECT 
+        c.*,
+        c.course_code as "courseCode",
+        c.start_date as "startDate",
+        c.end_date as "endDate",
+        c.study_schedule as "studySchedule",
+        c.max_attendants as "maxAttendants",
+        (
+          SELECT string_agg(u."fullName", ', ')
+          FROM course_teachers ct
+          JOIN users u ON ct.user_id = u.id
+          WHERE ct.course_id = c.id
+        ) as "teacherNames"
+      FROM courses c
+      INNER JOIN course_students cs ON cs.course_id = c.id AND cs.user_id = $1
+      WHERE c.status != 'DRAFT' ${searchQuery}
+      ORDER BY c.created_at DESC
+    `;
+
+    return this.dataSource.query(sql, params);
+  }
+
+  /**
    * Get a single course by ID.
    */
-  async findOne(id: string): Promise<Course> {
-    const course = await this.courseRepository.findOne({
-      where: { id },
-      relations: ['creator'],
-    });
-    if (!course) {
+  async findOne(id: string): Promise<any> {
+    const sql = `
+      SELECT 
+        c.*,
+        c.course_code as "courseCode",
+        c.start_date as "startDate",
+        c.end_date as "endDate",
+        c.study_schedule as "studySchedule",
+        c.max_attendants as "maxAttendants",
+        (
+          SELECT string_agg(u."fullName", ', ')
+          FROM course_teachers ct
+          JOIN users u ON ct.user_id = u.id
+          WHERE ct.course_id = c.id
+        ) as "teacherNames"
+      FROM courses c
+      WHERE c.id = $1
+    `;
+    const results = await this.dataSource.query(sql, [id]);
+    if (!results || results.length === 0) {
       throw new NotFoundException(`Course with ID "${id}" not found.`);
     }
-    return course;
+    return results[0];
   }
 
   /**

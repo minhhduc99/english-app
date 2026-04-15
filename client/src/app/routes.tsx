@@ -11,6 +11,7 @@ import { Register } from "./pages/Register";
 import { UserManagement } from "./pages/UserManagement";
 import { ChangePassword } from "./pages/ChangePassword";
 import { LearningMaterials } from "./pages/LearningMaterials";
+import { CourseDetail } from "./pages/CourseDetail";
 import { LearningPath } from "./pages/student/LearningPath";
 import { AISpeaking } from "./pages/student/AISpeaking";
 import { Flashcards } from "./pages/student/Flashcards";
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: Dashboard },
       { path: "courses", Component: Courses },
+      { path: "courses/:id", Component: CourseDetail },
       { path: "students", Component: StudentManagement },
       { path: "user-management", Component: UserManagement },
       { path: "attendance", Component: Attendance },

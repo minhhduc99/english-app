@@ -213,7 +213,21 @@ Full CRUD for course management. Access restricted to `ADMIN` and `MANAGER` role
 - **Security:** Requires `ADMIN` or `MANAGER` role.
 - **Response:** `200` Returns confirmation message.
 
-#### Course Members & Assignment
+### 7.4. Course Details & Learning Path
+Management of specific course content including curriculum and materials.
+
+#### Course Detail Screen
+- **Access:** Available to all roles.
+- **Features:** 
+  - **Learning Path:** Admins, Managers, and Teachers can Add, Edit, or Delete units. Students have read-only access.
+  - **Learning Materials:** Admins, Managers, and Teachers can link materials from the global material library. Students have read-only access.
+
+#### Learning Materials Screen
+- **Access:** Restricted to `ADMIN`, `MANAGER`, and `TEACHER` roles.
+- **Security:** Requires non-`STUDENT` role.
+- **Features:** Global library for uploading and managing educational resources (PDFs, Games, Flashcards).
+
+### 7.5. Attendance API (AttendanceModule)
 - **System Options:**
   - `GET /api/courses/students/available`: Get all available system students.
   - `GET /api/courses/teachers/available`: Get all available system teachers.

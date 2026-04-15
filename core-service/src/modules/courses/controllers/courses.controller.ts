@@ -50,13 +50,16 @@ export class CoursesController {
    * Access: ADMIN, MANAGER, TEACHER
    */
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER, Role.STUDENT)
   @ApiOperation({ summary: 'List all courses' })
   @ApiResponse({ status: 200, description: 'Courses retrieved successfully.' })
   async findAll(@Query('search') search?: string, @Request() req?: any) {
     const userRole = req?.user?.role;
     if (userRole === Role.TEACHER) {
        return this.coursesService.findForTeacher(req.user.id, search);
+    }
+    if (userRole === Role.STUDENT) {
+       return this.coursesService.findForStudent(req.user.id, search);
     }
     return this.coursesService.findAll(search);
   }
@@ -114,7 +117,7 @@ export class CoursesController {
    * Access: ADMIN, MANAGER
    */
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER, Role.STUDENT)
   @ApiOperation({ summary: 'Get course details by ID' })
   @ApiResponse({ status: 200, description: 'Course retrieved successfully.' })
   @ApiResponse({ status: 404, description: 'Course not found.' })

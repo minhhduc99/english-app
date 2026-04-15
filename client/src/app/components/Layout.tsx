@@ -105,7 +105,7 @@ export function Layout() {
       },
       // Only show User Management for Admins
       ...(user.role === "ADMIN" ? [{ path: "/user-management", label: t("menu.user_management"), icon: ShieldCheck }] : []),
-      ...(user.role === "TEACHER" || user.role === "ADMIN" ? [{ path: "/learning-materials", label: t("menu.learning_materials"), icon: FolderOpen }] : []),
+      ...(["ADMIN", "MANAGER", "TEACHER"].includes(user.role) ? [{ path: "/learning-materials", label: t("menu.learning_materials"), icon: FolderOpen }] : []),
       { path: "/reports", label: t("menu.reports"), icon: FileText },
       { path: "/settings", label: t("menu.settings"), icon: Settings },
     ];
