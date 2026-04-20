@@ -338,4 +338,66 @@ export class CoursesService {
       ORDER BY "fullName"
     `);
   }
+
+  /**
+   * Assign materials to course via course_materials junction table.
+   */
+  async assignMaterials(courseId: string, materialIds: string[]): Promise<{ message: string }> {
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_materials (
+        course_id   UUID NOT NULL REFERENCES courses(id)   ON DELETE CASCADE,
+        material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
+        PRIMARY KEY (course_id, material_id)
+      )
+    `);
+
+    for (const materialId of materialIds) {
+      await this.dataSource.query(
+        `INSERT INTO course_materials (course_id, material_id)
+         VALUES ($1, $2)
+         ON CONFLICT (course_id, material_id) DO NOTHING`,
+        [courseId, materialId]
+      );
+    }
+    return { message: 'Materials assigned successfully.' };
+  }
+
+  /**
+   * Get materials assigned to this course.
+   */
+  async getMaterials(courseId: string) {
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_materials (
+        course_id   UUID NOT NULL REFERENCES courses(id)   ON DELETE CASCADE,
+        material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
+        PRIMARY KEY (course_id, material_id)
+      )
+    `);
+    return this.dataSource.query(`
+      SELECT
+        m.id,
+        m.name,
+        m."originalName",
+        m."fileType" AS type,
+        m.size,
+        m."createdAt"
+      FROM course_materials cm
+      JOIN materials m ON cm.material_id = m.id
+      WHERE cm.course_id = $1
+      ORDER BY m."createdAt" DESC
+    `, [courseId]);
+
+  }
+
+  /**
+   * Remove a material from a course.
+   */
+  async unassignMaterial(courseId: string, materialId: string): Promise<{ message: string }> {
+    await this.dataSource.query(`
+      DELETE FROM course_materials 
+      WHERE course_id = $1 AND material_id = $2
+    `, [courseId, materialId]);
+    return { message: 'Material removed from course.' };
+  }
 }
+

@@ -1,22 +1,55 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Queue } from 'bullmq';
+import { Lesson } from './entities/lesson.entity';
 
 @Injectable()
 export class LessonsService {
   private readonly logger = new Logger(LessonsService.name);
 
-  // Inject the Redis Queue from BullMQ
-  constructor(@InjectQueue('Process_PDF') private processPdfQueue: Queue) {}
+  constructor(
+    @InjectRepository(Lesson)
+    private readonly lessonRepository: Repository<Lesson>,
+    @InjectQueue('Process_PDF') private processPdfQueue: Queue,
+  ) {}
+
+  async create(courseId: string, title: string, description: string, order: number) {
+    const lesson = this.lessonRepository.create({
+      courseId,
+      title,
+      description,
+      order,
+    });
+    return await this.lessonRepository.save(lesson);
+  }
+
+  async findAllByCourse(courseId: string) {
+    return await this.lessonRepository.find({
+      where: { courseId },
+      order: { order: 'ASC' },
+    });
+  }
+
+  async update(id: string, data: Partial<Lesson>) {
+    const lesson = await this.lessonRepository.findOne({ where: { id } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    Object.assign(lesson, data);
+    return await this.lessonRepository.save(lesson);
+  }
+
+  async remove(id: string) {
+    const lesson = await this.lessonRepository.findOne({ where: { id } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    await this.lessonRepository.remove(lesson);
+    return { message: 'Lesson deleted successfully' };
+  }
 
   async uploadLessonMaterial(lessonId: string, file: Express.Multer.File) {
     this.logger.log(`Uploading file for lesson ${lessonId} to Garage S3...`);
-    
-    // 1. Garage S3 Upload Logic here using AWS SDK v3...
     const s3Path = `lesson-materials/${lessonId}/${file.originalname}`;
     
-    // 2. Add job to Redis queue for the AI Service to process (OCR/RAG/Embedding)
-    this.logger.log(`Pushing async document processing to Redis Queue...`);
     await this.processPdfQueue.add('Process_PDF', {
       lessonId,
       s3Path,

@@ -11,6 +11,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoursesModule } from './modules/courses/courses.module';
+import { MaterialsModule } from './modules/materials/materials.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { CoursesModule } from './modules/courses/courses.module';
     AttendanceModule,
     LessonsModule,
     CoursesModule,
+    MaterialsModule,
     QueueModule,
     WebhooksModule,
   ],

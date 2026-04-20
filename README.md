@@ -237,8 +237,31 @@ Management of specific course content including curriculum and materials.
   - `GET /api/courses/:id/teachers`: List assigned teachers to specific course.
   - `POST /api/courses/:id/teachers`: Assign teachers using `{"teacherIds": ["uuid", "uuid"]}`.
 
-### 7.4. Attendance API (AttendanceModule)
+#### Course Materials Management
+API for linking materials from the global material library to specific courses.
+
+- **List Course Materials:** `GET /api/courses/:id/materials`
+  - Returns array of materials assigned to the course.
+- **Assign Materials:** `POST /api/courses/:id/materials`
+  - **Body:** `{"materialIds": ["uuid", "uuid"]}`
+- **Unassign Material:** `DELETE /api/courses/:id/materials/:materialId`
+  - Removes the link between the material and the course.
+
+#### Lesson Management (Learning Path)
+API for managing chronological lessons/units within a course.
+
+- **Create Lesson:** `POST /api/lessons`
+  - **Body:** `{"courseId": "uuid", "title": "string", "description": "string", "order": number}`
+- **List Course Lessons:** `GET /api/lessons/course/:courseId`
+  - Returns lessons ordered by `order`.
+- **Update Lesson:** `PUT /api/lessons/:id`
+  - **Body:** `{"title": "string", "description": "string"}`
+- **Delete Lesson:** `DELETE /api/lessons/:id`
+
+
+
 Full API to handle roll call and attendance spreadsheet management.
+
 
 #### Take Attendance (Directly)
 - **Endpoint:** `POST /api/attendance/take`
@@ -269,8 +292,47 @@ Full API to handle roll call and attendance spreadsheet management.
   - `date`: Ensure passing formatted string `YYYY-MM-DD`.
 - **Response:** `201` Returns success message.
 
+### 7.6. Learning Materials API (MaterialsModule)
+Management of the global material library. Files are stored locally in the `local-library/` folder at the project root.
 
-## 8. Running the Services (Development)
+#### Upload Material
+- **Endpoint:** `POST /api/materials/upload`
+- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
+- **Form Data:**
+  - `file`: The file to upload (PDF, XLSX, or PPTX). Max 50MB.
+  - `uploadedById`: UUID of the user performing the upload.
+  - `courseId` (Optional): Associate material with a specific course.
+- **Response:** `201` Returns the created material metadata.
+
+#### List All Materials
+- **Endpoint:** `GET /api/materials`
+- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
+- **Response:** `200` Returns an array of material objects including uploader details.
+
+#### Download Material
+- **Endpoint:** `GET /api/materials/download/:id`
+- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
+- **Response:** `200` Streams the specified file with its original filename.
+
+#### Delete Material
+- **Endpoint:** `DELETE /api/materials/:id`
+- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
+- **Permission Rules:**
+  - `ADMIN` and `MANAGER` can delete any material.
+  - `TEACHER` can only delete materials they uploaded themselves.
+- **Response:** `200` Returns confirmation. Deletes both DB record and local file.
+
+
+## 8. Storage & File Management
+
+### 8.1. Local Library
+For development and local deployments, materials are stored in:
+`ROOT/local-library/`
+
+This folder is excluded from Git but is required for the Core Service. The service will auto-create this folder if it doesn't exist during bootstrap.
+
+## 9. Running the Services (Development)
+
 
 
 ### 7.1. Infrastructure (Database, Redis, Storage)

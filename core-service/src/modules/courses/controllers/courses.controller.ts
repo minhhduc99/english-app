@@ -112,6 +112,34 @@ export class CoursesController {
     return this.coursesService.assignTeachers(id, teacherIds || []);
   }
 
+  @Get(':id/materials')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER, Role.STUDENT)
+  @ApiOperation({ summary: 'Get assigned materials' })
+  async getMaterials(@Param('id', ParseUUIDPipe) id: string) {
+    return this.coursesService.getMaterials(id);
+  }
+
+  @Post(':id/materials')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  @ApiOperation({ summary: 'Assign materials to course' })
+  async assignMaterials(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('materialIds') materialIds: string[],
+  ) {
+    return this.coursesService.assignMaterials(id, materialIds || []);
+  }
+
+  @Delete(':id/materials/:materialId')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  @ApiOperation({ summary: 'Unassign material from course' })
+  async unassignMaterial(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('materialId', ParseUUIDPipe) materialId: string,
+  ) {
+    return this.coursesService.unassignMaterial(id, materialId);
+  }
+
+
   /**
    * Get a single course by ID.
    * Access: ADMIN, MANAGER
