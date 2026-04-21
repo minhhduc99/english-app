@@ -29,7 +29,7 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Access Denied: No authentication found.');
     }
 
-    const hasRole = requiredRoles.some((role) => user.role === role);
+    const hasRole = user.role === Role.ADMIN || requiredRoles.some((role) => user.role === role);
     if (!hasRole) {
       throw new ForbiddenException(`Insufficient Permissions: ${requiredRoles.join(', ')} required.`);
     }

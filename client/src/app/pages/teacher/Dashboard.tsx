@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Clock,
   Calendar,
@@ -14,77 +14,164 @@ import {
   FileCheck,
   Image,
   FileSpreadsheet,
+  ArrowRight,
+  TrendingUp,
+  GraduationCap,
+  CheckCircle,
 } from "lucide-react";
+import { translateSchedule } from "../../utils/schedule";
+import { useLanguage } from "../../contexts/LanguageContext";
+
+interface Course {
+  id: string;
+  name: string;
+  courseCode: string;
+  studySchedule: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
 
 export function Dashboard() {
+  const { t, language } = useLanguage();
   const [selectedDate] = useState(new Date());
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Today's Classes
-  const todayClasses = [
-    {
-      id: 1,
-      time: "08:00 - 09:30",
-      subject: "English Grammar - Unit 5",
-      class: "Class 10A",
-      room: "Room 203",
-      type: "in-person",
-      status: "ongoing",
-    },
-    {
-      id: 2,
-      time: "10:00 - 11:30",
-      subject: "Vocabulary Building",
-      class: "Class 10B",
-      room: "Room 105",
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch("/api/courses", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCourses(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const getDayName = (date: Date) => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return days[date.getDay()];
+  };
+
+  const isToday = (course: Course) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const dayName = getDayName(today);
+    
+    // Check if within date range
+    if (todayStr < course.startDate || todayStr > course.endDate) return false;
+    
+    // Day synonyms for matching (English & Vietnamese)
+    const daySynonyms: Record<string, string[]> = {
+      Mon: ["Mon", "Thứ Hai", "Thứ 2", "H"],
+      Tue: ["Tue", "Thứ Ba", "Thứ 3", "B"],
+      Wed: ["Wed", "Thứ Tư", "Thứ 4", "T"],
+      Thu: ["Thu", "Thứ Năm", "Thứ 5", "N"],
+      Fri: ["Fri", "Thứ Sáu", "Thứ 6", "S"],
+      Sat: ["Sat", "Thứ Bảy", "Thứ 7", "B"],
+      Sun: ["Sun", "Chủ Nhật", "CN", "C"],
+    };
+
+    const synonyms = daySynonyms[dayName] || [dayName];
+    return synonyms.some(syn => course.studySchedule.includes(syn));
+  };
+
+  const isUpcoming = (course: Course) => {
+    const today = new Date();
+    
+    // Day synonyms for matching (English & Vietnamese)
+    const daySynonyms: Record<string, string[]> = {
+      Mon: ["Mon", "Thứ Hai", "Thứ 2", "H"],
+      Tue: ["Tue", "Thứ Ba", "Thứ 3", "B"],
+      Wed: ["Wed", "Thứ Tư", "Thứ 4", "T"],
+      Thu: ["Thu", "Thứ Năm", "Thứ 5", "N"],
+      Fri: ["Fri", "Thứ Sáu", "Thứ 6", "S"],
+      Sat: ["Sat", "Thứ Bảy", "Thứ 7", "B"],
+      Sun: ["Sun", "Chủ Nhật", "CN", "C"],
+    };
+
+    // Simplistic upcoming check: next 7 days, excluding today
+    for (let i = 1; i <= 7; i++) {
+       const futureDate = new Date();
+       futureDate.setDate(today.getDate() + i);
+       const futureStr = futureDate.toISOString().split("T")[0];
+       const dayName = getDayName(futureDate);
+       
+       if (futureStr >= course.startDate && futureStr <= course.endDate) {
+         const synonyms = daySynonyms[dayName] || [dayName];
+         if (synonyms.some(syn => course.studySchedule.includes(syn))) return true;
+       }
+    }
+    return false;
+  };
+
+  const getTodayClasses = () => {
+    return courses.filter(isToday).map(c => ({
+      id: c.id,
+      time: c.studySchedule.split(" ").slice(-1)[0], // Assuming "Day Day HH:mm-HH:mm"
+      subject: c.name,
+      class: c.courseCode,
+      room: "TBD", // Room not in Course entity yet
       type: "in-person",
       status: "upcoming",
-    },
-    {
-      id: 3,
-      time: "13:00 - 14:30",
-      subject: "Speaking Practice",
-      class: "Class 11A",
-      room: "Online",
-      type: "online",
-      status: "upcoming",
-    },
-  ];
+    }));
+  };
 
-  // Upcoming Classes (Next 3 days)
-  const upcomingClasses = [
-    {
-      id: 1,
-      date: "Mar 25, 2026",
-      time: "09:00 - 10:30",
-      subject: "Reading Comprehension",
-      class: "Class 10A",
-      room: "Room 203",
-    },
-    {
-      id: 2,
-      date: "Mar 25, 2026",
-      time: "14:00 - 15:30",
-      subject: "Writing Workshop",
-      class: "Class 10B",
-      room: "Room 105",
-    },
-    {
-      id: 3,
-      date: "Mar 26, 2026",
-      time: "08:00 - 09:30",
-      subject: "Grammar Advanced",
-      class: "Class 11A",
-      room: "Room 301",
-    },
-    {
-      id: 4,
-      date: "Mar 26, 2026",
-      time: "11:00 - 12:30",
-      subject: "Pronunciation Practice",
-      class: "Class 10A",
-      room: "Language Lab",
-    },
-  ];
+  const getUpcomingClasses = () => {
+    // Day synonyms for matching (English & Vietnamese)
+    const daySynonyms: Record<string, string[]> = {
+      Mon: ["Mon", "Thứ Hai", "Thứ 2", "H"],
+      Tue: ["Tue", "Thứ Ba", "Thứ 3", "B"],
+      Wed: ["Wed", "Thứ Tư", "Thứ 4", "T"],
+      Thu: ["Thu", "Thứ Năm", "Thứ 5", "N"],
+      Fri: ["Fri", "Thứ Sáu", "Thứ 6", "S"],
+      Sat: ["Sat", "Thứ Bảy", "Thứ 7", "B"],
+      Sun: ["Sun", "Chủ Nhật", "CN", "C"],
+    };
+
+    return courses.filter(c => !isToday(c) && isUpcoming(c)).map(c => {
+      // Find the first upcoming day in next 7 days
+      let upcomingInfo = { date: "Upcoming" };
+      const today = new Date();
+      for (let i = 1; i <= 7; i++) {
+        const futureDate = new Date();
+        futureDate.setDate(today.getDate() + i);
+        const futureStr = futureDate.toISOString().split("T")[0];
+        const dayName = getDayName(futureDate);
+        const synonyms = daySynonyms[dayName] || [dayName];
+        
+        if (futureStr >= c.startDate && futureStr <= c.endDate && synonyms.some(syn => c.studySchedule.includes(syn))) {
+          upcomingInfo.date = futureDate.toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN', { weekday: 'short', month: 'short', day: 'numeric' });
+          break;
+        }
+      }
+
+      return {
+        id: c.id,
+        date: upcomingInfo.date,
+        time: c.studySchedule.split(" ").slice(-1)[0],
+        schedule: translateSchedule(c.studySchedule, language),
+        subject: c.name,
+        class: c.courseCode,
+        room: "TBD",
+      };
+    });
+  };
+
+  const todayClasses = getTodayClasses();
+  const upcomingClasses = getUpcomingClasses();
 
   // Learning Materials Statistics
   const materialStats = {
@@ -169,8 +256,8 @@ export function Dashboard() {
   };
 
   const getStatusLabel = (status: string) => {
-    if (status === "ongoing") return "In Progress";
-    if (status === "upcoming") return "Upcoming";
+    if (status === "ongoing") return t("dashboard.in_progress");
+    if (status === "upcoming") return t("dashboard.upcoming");
     return status;
   };
 
@@ -179,9 +266,10 @@ export function Dashboard() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{t("menu.dashboard")}</h1>
           <p className="text-gray-500 mt-1">
-            Today is {selectedDate.toLocaleDateString("en-US", { 
+            {language === 'en' ? 'Today is ' : 'Hôm nay là '}
+            {selectedDate.toLocaleDateString(language === 'en' ? "en-US" : "vi-VN", { 
               weekday: "long", 
               year: "numeric", 
               month: "long", 
@@ -196,9 +284,9 @@ export function Dashboard() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm text-gray-500 mb-1">Today's Classes</p>
+              <p className="text-sm text-gray-500 mb-1">{t("dashboard.todays_classes")}</p>
               <p className="text-3xl font-semibold text-gray-900">{todayClasses.length}</p>
-              <p className="text-xs text-gray-500 mt-1">1 ongoing, 2 upcoming</p>
+              <p className="text-xs text-gray-500 mt-1">{todayClasses.length} {t("dashboard.upcoming")}</p>
             </div>
             <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Clock className="w-6 h-6" />
@@ -209,9 +297,9 @@ export function Dashboard() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm text-gray-500 mb-1">Upcoming Classes</p>
+              <p className="text-sm text-gray-500 mb-1">{t("dashboard.upcoming")}</p>
               <p className="text-3xl font-semibold text-gray-900">{upcomingClasses.length}</p>
-              <p className="text-xs text-gray-500 mt-1">Next 3 days</p>
+              <p className="text-xs text-gray-500 mt-1">Next 7 days</p>
             </div>
             <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Calendar className="w-6 h-6" />
@@ -222,7 +310,7 @@ export function Dashboard() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm text-gray-500 mb-1">Learning Materials</p>
+              <p className="text-sm text-gray-500 mb-1">{t("menu.learning_materials")}</p>
               <p className="text-3xl font-semibold text-gray-900">{materialStats.total}</p>
               <p className="text-xs text-green-600 mt-1">+{materialStats.thisMonth} this month</p>
             </div>
@@ -235,9 +323,9 @@ export function Dashboard() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm text-gray-500 mb-1">Student Attendance</p>
+              <p className="text-sm text-gray-500 mb-1">{t("menu.attendance")}</p>
               <p className="text-3xl font-semibold text-gray-900">{absentStudents.length}</p>
-              <p className="text-xs text-orange-600 mt-1">{lateStudents.length} late arrivals</p>
+              <p className="text-xs text-orange-600 mt-1">{lateStudents.length} {t("dashboard.late_arrivals")}</p>
             </div>
             <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Users className="w-6 h-6" />
@@ -250,64 +338,74 @@ export function Dashboard() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Today's Classes</h2>
-            <p className="text-sm text-gray-500 mt-1">Your schedule for today</p>
+            <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.todays_classes")}</h2>
+            <p className="text-sm text-gray-500 mt-1">{t("dashboard.your_schedule")}</p>
           </div>
           <button className="text-sm text-[#1A73E8] hover:underline font-medium flex items-center gap-1">
-            View Full Schedule
+            {t("dashboard.view_full_schedule")}
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          {todayClasses.map((classItem) => (
-            <div
-              key={classItem.id}
-              className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="w-12 h-12 bg-[#E8F0FE] rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 text-[#1A73E8]" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{classItem.subject}</h3>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                          classItem.status
-                        )}`}
-                      >
-                        {getStatusLabel(classItem.status)}
-                      </span>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-4 border-[#1A73E8] border-t-transparent rounded-full"></div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {todayClasses.length > 0 ? todayClasses.map((classItem) => (
+              <div
+                key={classItem.id}
+                className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-12 h-12 bg-[#E8F0FE] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-6 h-6 text-[#1A73E8]" />
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {classItem.time}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-gray-900">{classItem.subject}</h3>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                            classItem.status
+                          )}`}
+                        >
+                          {getStatusLabel(classItem.status)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {classItem.class}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {classItem.type === "online" ? (
-                          <Video className="w-4 h-4" />
-                        ) : (
-                          <MapPin className="w-4 h-4" />
-                        )}
-                        {classItem.room}
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {classItem.time}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {classItem.class}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {classItem.type === "online" ? (
+                            <Video className="w-4 h-4" />
+                          ) : (
+                            <MapPin className="w-4 h-4" />
+                          )}
+                          {classItem.room}
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <button className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm whitespace-nowrap">
+                    {t("dashboard.view_details")}
+                  </button>
                 </div>
-                <button className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm whitespace-nowrap">
-                  View Details
-                </button>
               </div>
-            </div>
-          ))}
-        </div>
+            )) : (
+              <div className="text-center py-12 text-gray-500 italic">
+                {language === 'en' ? 'No classes scheduled for today' : 'Không có lớp học nào được lên lịch cho hôm nay'}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Upcoming Classes & Learning Materials */}
@@ -320,14 +418,14 @@ export function Dashboard() {
                 <Calendar className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Upcoming Classes</h2>
-                <p className="text-sm text-gray-500">Next 3 days</p>
+                <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.upcoming")}</h2>
+                <p className="text-sm text-gray-500">Next 7 days</p>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            {upcomingClasses.map((classItem) => (
+            {upcomingClasses.length > 0 ? upcomingClasses.map((classItem) => (
               <div
                 key={classItem.id}
                 className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
@@ -340,7 +438,7 @@ export function Dashboard() {
                   <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                     <span>{classItem.date}</span>
                     <span>•</span>
-                    <span>{classItem.time}</span>
+                    <span>{classItem.schedule}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-600">
                     <span>{classItem.class}</span>
@@ -349,7 +447,11 @@ export function Dashboard() {
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-8 text-gray-400 italic text-sm">
+                {language === 'en' ? 'No upcoming classes' : 'Không có lớp học sắp tới'}
+              </div>
+            )}
           </div>
         </div>
 
@@ -361,12 +463,12 @@ export function Dashboard() {
                 <FolderOpen className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Learning Materials</h2>
-                <p className="text-sm text-gray-500">Total uploaded content</p>
+                <h2 className="text-lg font-semibold text-gray-900">{t("menu.learning_materials")}</h2>
+                <p className="text-sm text-gray-500">{t("dashboard.total_materials_desc")}</p>
               </div>
             </div>
             <button className="text-sm text-[#1A73E8] hover:underline font-medium">
-              Upload New
+              {t("dashboard.upload_new")}
             </button>
           </div>
 
@@ -374,11 +476,11 @@ export function Dashboard() {
             <div className="flex items-center gap-3 mb-2">
               <FileCheck className="w-8 h-8" />
               <div>
-                <p className="text-sm opacity-90">Total Materials</p>
+                <p className="text-sm opacity-90">{t("materials.total_materials")}</p>
                 <p className="text-3xl font-bold">{materialStats.total}</p>
               </div>
             </div>
-            <p className="text-sm opacity-90">+{materialStats.thisMonth} added this month</p>
+            <p className="text-sm opacity-90">+{materialStats.thisMonth} {language === 'en' ? 'this month' : 'tháng này'}</p>
           </div>
 
           <div className="space-y-3">
@@ -410,12 +512,12 @@ export function Dashboard() {
                 <UserX className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Absent Today</h2>
-                <p className="text-sm text-gray-500">{absentStudents.length} students</p>
+                <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.absent_today")}</h2>
+                <p className="text-sm text-gray-500">{absentStudents.length} {t("menu.students")}</p>
               </div>
             </div>
             <button className="text-sm text-[#1A73E8] hover:underline font-medium">
-              View All
+              {t("attendance.status_all")}
             </button>
           </div>
 
@@ -437,12 +539,12 @@ export function Dashboard() {
                   <p className="text-sm text-gray-600 mb-2">{student.reason}</p>
                   {student.contactAttempt ? (
                     <span className="inline-block px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-200">
-                      Parent Contacted
+                      {t("dashboard.parent_contacted")}
                     </span>
                   ) : (
                     <span className="inline-block px-2 py-1 bg-red-50 text-red-700 rounded-full text-xs font-medium border border-red-200 flex items-center gap-1 w-fit">
                       <AlertCircle className="w-3 h-3" />
-                      Contact Required
+                      {t("dashboard.contact_required")}
                     </span>
                   )}
                 </div>
@@ -459,12 +561,12 @@ export function Dashboard() {
                 <AlertCircle className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Late Arrivals Today</h2>
-                <p className="text-sm text-gray-500">{lateStudents.length} students</p>
+                <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.late_arrivals")}</h2>
+                <p className="text-sm text-gray-500">{lateStudents.length} {t("menu.students")}</p>
               </div>
             </div>
             <button className="text-sm text-[#1A73E8] hover:underline font-medium">
-              View All
+              {t("attendance.status_all")}
             </button>
           </div>
 
@@ -484,7 +586,7 @@ export function Dashboard() {
                     <p className="text-sm text-gray-500">{student.class}</p>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <span>Arrived: {student.arrivalTime}</span>
+                    <span>{language === 'en' ? 'Arrived: ' : 'Đến lúc: '}{student.arrivalTime}</span>
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                         student.minutesLate > 15
@@ -492,7 +594,7 @@ export function Dashboard() {
                           : "bg-orange-50 text-orange-700 border border-orange-200"
                       }`}
                     >
-                      {student.minutesLate} min late
+                      {student.minutesLate} {t("dashboard.minutes_late")}
                     </span>
                   </div>
                 </div>

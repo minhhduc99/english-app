@@ -84,6 +84,7 @@ export class CoursesService {
     const qb = this.courseRepository.createQueryBuilder('course')
       .innerJoin('course_teachers', 'ct', 'ct.course_id = course.id AND ct.user_id = :teacherId', { teacherId })
       .leftJoinAndSelect('course.creator', 'creator')
+      .where('course.status = :status', { status: 'ACTIVE' })
       .orderBy('course.createdAt', 'DESC');
 
     if (search) {
@@ -136,7 +137,7 @@ export class CoursesService {
         ) as "teacherNames"
       FROM courses c
       INNER JOIN course_students cs ON cs.course_id = c.id AND cs.user_id = $1
-      WHERE c.status != 'DRAFT' ${searchQuery}
+      WHERE c.status = 'ACTIVE' ${searchQuery}
       ORDER BY c.created_at DESC
     `;
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Clock } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 
 export interface CourseFormData {
@@ -62,15 +62,66 @@ export function CourseFormModal({
   const { t, language } = useLanguage();
   const [formData, setFormData] = useState<CourseFormData>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
 
   useEffect(() => {
-    if (mode === "edit" && course) {
-      setFormData({ ...course });
-    } else {
-      setFormData({ ...emptyForm });
+    if (isOpen) {
+      if (mode === "edit" && course) {
+        const formatDate = (date: string | undefined) => {
+          if (!date) return "";
+          return date.includes("T") ? date.split("T")[0] : date;
+        };
+        const sanitizedCourse = {
+          ...course,
+          startDate: formatDate(course.startDate),
+          endDate: formatDate(course.endDate),
+        };
+        setFormData(sanitizedCourse);
+        const schedule = sanitizedCourse.studySchedule;
+        if (schedule) {
+          const lastSpaceIndex = schedule.lastIndexOf(" ");
+          const daysPart = lastSpaceIndex === -1 ? schedule : schedule.substring(0, lastSpaceIndex);
+          const timePart = lastSpaceIndex === -1 ? "" : schedule.substring(lastSpaceIndex + 1);
+          
+          setSelectedDays(daysPart ? daysPart.split(", ").map(d => d.trim()).filter(Boolean) : []);
+          if (timePart.includes("-")) {
+            const [start, end] = timePart.split("-");
+            setStartTime(start);
+            setEndTime(end);
+          } else {
+            setStartTime(timePart);
+            setEndTime("");
+          }
+        }
+      } else {
+        setFormData({ ...emptyForm });
+        setSelectedDays([]);
+        setStartTime("");
+        setEndTime("");
+      }
     }
     setErrors({});
   }, [mode, course, isOpen]);
+
+  const handleDayToggle = (dayId: string) => {
+    let newDays;
+    if (selectedDays.includes(dayId)) {
+      newDays = selectedDays.filter(d => d !== dayId);
+    } else {
+      const weekOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      newDays = [...selectedDays, dayId].sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+    }
+    setSelectedDays(newDays);
+    updateScheduleString(newDays, startTime, endTime);
+  };
+
+  const updateScheduleString = (days: string[], start: string, end: string) => {
+    const time = (start && end) ? `${start}-${end}` : (start || end || "");
+    const schedule = `${days.join(", ")} ${time}`.trim();
+    setFormData(prev => ({ ...prev, studySchedule: schedule }));
+  };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -101,6 +152,16 @@ export function CourseFormModal({
   const inputClass =
     "w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A73E8] focus:border-transparent transition-all text-sm";
   const errorClass = "text-xs text-red-500 mt-1";
+
+  const DAYS = [
+    { id: "Mon", labelVi: "H", labelEn: "M" },
+    { id: "Tue", labelVi: "B", labelEn: "T" },
+    { id: "Wed", labelVi: "T", labelEn: "W" },
+    { id: "Thu", labelVi: "N", labelEn: "T" },
+    { id: "Fri", labelVi: "S", labelEn: "F" },
+    { id: "Sat", labelVi: "B", labelEn: "S" },
+    { id: "Sun", labelVi: "C", labelEn: "S" },
+  ];
 
   return (
     <>
@@ -143,7 +204,7 @@ export function CourseFormModal({
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   className={`${inputClass} ${errors.name ? "border-red-300 ring-1 ring-red-300" : ""}`}
                   placeholder={t("course.name_placeholder")}
                 />
@@ -154,7 +215,7 @@ export function CourseFormModal({
                 <input
                   type="text"
                   value={formData.courseCode}
-                  onChange={(e) => setFormData({ ...formData, courseCode: e.target.value.toUpperCase() })}
+                  onChange={(e) => setFormData(prev => ({ ...prev, courseCode: e.target.value.toUpperCase() }))}
                   className={`${inputClass} ${errors.courseCode ? "border-red-300 ring-1 ring-red-300" : ""}`}
                   placeholder={t("course.code_placeholder")}
                 />
@@ -168,7 +229,7 @@ export function CourseFormModal({
                 <label className={labelClass}>{t("course.level")} *</label>
                 <select
                   value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                  onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value }))}
                   className={inputClass}
                 >
                   {LEVELS.map((lvl) => (
@@ -185,7 +246,7 @@ export function CourseFormModal({
                   min={1}
                   max={500}
                   value={formData.maxAttendants}
-                  onChange={(e) => setFormData({ ...formData, maxAttendants: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setFormData(prev => ({ ...prev, maxAttendants: parseInt(e.target.value) || 0 }))}
                   className={`${inputClass} ${errors.maxAttendants ? "border-red-300 ring-1 ring-red-300" : ""}`}
                 />
                 {errors.maxAttendants && <p className={errorClass}>{errors.maxAttendants}</p>}
@@ -199,7 +260,7 @@ export function CourseFormModal({
                 <input
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                   className={`${inputClass} ${errors.startDate ? "border-red-300 ring-1 ring-red-300" : ""}`}
                 />
                 {errors.startDate && <p className={errorClass}>{errors.startDate}</p>}
@@ -209,7 +270,7 @@ export function CourseFormModal({
                 <input
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                   className={`${inputClass} ${errors.endDate ? "border-red-300 ring-1 ring-red-300" : ""}`}
                 />
                 {errors.endDate && <p className={errorClass}>{errors.endDate}</p>}
@@ -219,13 +280,56 @@ export function CourseFormModal({
             {/* Row 4: Study Schedule */}
             <div>
               <label className={labelClass}>{t("course.study_schedule")} *</label>
-              <input
-                type="text"
-                value={formData.studySchedule}
-                onChange={(e) => setFormData({ ...formData, studySchedule: e.target.value })}
-                className={`${inputClass} ${errors.studySchedule ? "border-red-300 ring-1 ring-red-300" : ""}`}
-                placeholder={t("course.schedule_placeholder")}
-              />
+              <div className="flex flex-wrap gap-2 mb-4">
+                {DAYS.map((day) => {
+                  const isSelected = selectedDays.includes(day.id);
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => handleDayToggle(day.id)}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold transition-all border ${
+                        isSelected
+                          ? "bg-[#1A73E8] border-[#1A73E8] text-white shadow-md shadow-blue-100"
+                          : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                      }`}
+                    >
+                      {language === "vi" ? day.labelVi : day.labelEn}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">{t("course.start_time")}</label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => {
+                        setStartTime(e.target.value);
+                        updateScheduleString(selectedDays, e.target.value, endTime);
+                      }}
+                      className={`${inputClass} ${errors.studySchedule ? "border-red-300" : ""}`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">{t("course.end_time")}</label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => {
+                        setEndTime(e.target.value);
+                        updateScheduleString(selectedDays, startTime, e.target.value);
+                      }}
+                      className={`${inputClass} ${errors.studySchedule ? "border-red-300" : ""}`}
+                    />
+                  </div>
+                </div>
+              </div>
               {errors.studySchedule && <p className={errorClass}>{errors.studySchedule}</p>}
             </div>
 
@@ -235,7 +339,7 @@ export function CourseFormModal({
                 <label className={labelClass}>{t("course.status")}</label>
                 <select
                   value={formData.status || "DRAFT"}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
                   className={inputClass}
                 >
                   {STATUSES.map((st) => (
@@ -252,7 +356,7 @@ export function CourseFormModal({
               <label className={labelClass}>{t("course.description")}</label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 className={`${inputClass} min-h-[100px] resize-y`}
                 placeholder={t("course.description_placeholder")}
                 rows={3}

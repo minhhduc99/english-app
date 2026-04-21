@@ -21,6 +21,7 @@ import { AssignStudentsModal } from "../components/manager/AssignStudentsModal";
 import { AssignTeachersModal } from "../components/manager/AssignTeachersModal";
 import { SelectMaterialModal } from "../components/manager/SelectMaterialModal";
 import { LessonFormModal } from "../components/LessonFormModal";
+import { translateSchedule } from "../utils/schedule";
 
 interface Course {
   id: string;
@@ -290,7 +291,7 @@ export function CourseDetail() {
              </div>
              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center"><Clock className="w-6 h-6 text-amber-600" /></div>
-               <div><p className="text-sm text-gray-500">{t("course.col_schedule")}</p><p className="text-lg font-bold text-gray-900 truncate max-w-[150px]">{course.studySchedule}</p></div>
+               <div><p className="text-sm text-gray-500">{t("course.col_schedule")}</p><p className="text-lg font-bold text-gray-900 truncate max-w-[150px]">{translateSchedule(course.studySchedule, language)}</p></div>
              </div>
              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center"><BookOpen className="w-6 h-6 text-green-600" /></div>

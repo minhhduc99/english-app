@@ -18,6 +18,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { CourseFormModal, CourseFormData } from "../components/CourseFormModal";
 import { AssignStudentsModal } from "../components/manager/AssignStudentsModal";
 import { AssignTeachersModal } from "../components/manager/AssignTeachersModal";
+import { translateSchedule } from "../utils/schedule";
 
 interface Course {
   id: string;
@@ -403,7 +404,7 @@ function AdminCourses() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span className="max-w-[150px] truncate">{course.studySchedule}</span>
+                        <span className="max-w-[150px] truncate">{translateSchedule(course.studySchedule, language)}</span>
                       </div>
                     </td>
                     {/* Dates */}
