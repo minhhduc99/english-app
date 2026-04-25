@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { MaterialsService } from '../../materials/materials.service';
 
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
+
+  constructor(private readonly materialsService: MaterialsService) {}
 
   /**
    * Fetches the core overview statistics for the administrative dashboard.
@@ -32,6 +35,23 @@ export class DashboardService {
         { id: 3, type: "SYSTEM_ALERT", message: "Daily backup completed successfully", timestamp: "8 hours ago" },
         { id: 4, type: "USER_FEEDBACK", message: "New inquiry from contact page", timestamp: "1 day ago" },
       ]
+    };
+  }
+
+  async getTeacherStats(teacherId: string) {
+    this.logger.log(`Fetching Teacher Dashboard Statistics for user: ${teacherId}`);
+    
+    const materialCounts = await this.materialsService.countByTeacher(teacherId);
+    
+    return {
+      materials: {
+        total: materialCounts.total,
+        thisMonth: materialCounts.thisMonth,
+        types: materialCounts.types,
+        categories: materialCounts.categories,
+      },
+      // In a real implementation, we could add more teacher-specific stats here
+      // like active classes, student performance in their classes, etc.
     };
   }
 }

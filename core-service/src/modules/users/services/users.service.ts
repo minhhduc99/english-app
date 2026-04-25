@@ -55,4 +55,25 @@ export class UsersService {
     }
     await this.userRepository.remove(student);
   }
+  async findById(id: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async update(id: string, data: Partial<User>): Promise<User> {
+    await this.userRepository.update(id, data);
+    const updated = await this.userRepository.findOne({ where: { id } });
+    if (!updated) throw new NotFoundException('User not found');
+    return updated;
+  }
+
+  async addRewards(userId: string, xp: number, coins: number): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    
+    user.xp = (user.xp || 0) + xp;
+    user.coins = (user.coins || 0) + coins;
+    user.lastDailyGameAt = new Date().toISOString().split('T')[0];
+    
+    await this.userRepository.save(user);
+  }
 }

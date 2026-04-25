@@ -4,7 +4,7 @@
 
 The system follows a **Decoupled Microservices** pattern to isolate heavy AI computations from core business logic.
 
-- **Core LMS Service (NestJS):** Handles Auth, Class Management, Attendance, and Gamification.
+- **Core LMS Service (NestJS):** Handles Auth, Class Management, Attendance, Flashcards, English Games, and Gamification.
 - **AI Microservice (FastAPI):** Handles OCR, PDF Text Extraction, Embedding (RAG), and Real-time Voice Chat.
 - **Message Queue (Redis/BullMQ):** Acts as the asynchronous backbone. All heavy tasks (PDF processing, Audio analysis) are queued to prevent blocking the main event loop.
 - **Storage (Garage S3):** A lightweight, distributed S3-compatible object store used for all binary assets (PDFs, Images, Audio).
@@ -17,8 +17,7 @@ We use **Polyglot Persistence**: PostgreSQL for relational data, Pinecone for Ve
 
 | Table | Fields | Note |
 |---|---|---|
-| accounts | id (UUID PK), username, password_hash, role | role: ADMIN, MANAGER, TEACHER, STUDENT |
-| user_profiles | user_id (FK), full_name, avatar_url, email, phone | Separated for performance and security |
+| users | id (UUID PK), username, password, fullName, email, role, xp, coins, lastDailyGameAt | **XP/Coins**: Global student progression stats. **lastDailyGameAt**: Tracks daily challenge status. |
 
 ### 2.2. Operations & Attendance (Partitioned)
 
@@ -41,7 +40,7 @@ We use **Polyglot Persistence**: PostgreSQL for relational data, Pinecone for Ve
 |---|---|---|
 | lessons | id, class_id, title, description | Lesson metadata |
 | media_assets | id, lesson_id, file_url, file_type, is_synced | Managed in Garage S3. `is_synced` flags AI readiness |
-| vocabularies | id, lesson_id, word, ipa, definition | Target data for Flashcards and AI prompts |
+| vocabularies | id, lesson_id, word, ipa, definition, example | Target data for Flashcards and English Games |
 
 ### 2.5. AI Conversations (Real-time & Partitioned)
 
@@ -91,325 +90,82 @@ core-service/
 ├── src/
 │   ├── main.ts
 │   ├── app.module.ts
-│   ├── config/              # Env validation & configs (database, redis, s3)
 │   ├── modules/
-│   │   ├── users/           # Separate Accounts/Profiles logic
+│   │   ├── users/           # Separate Accounts/Profiles logic + Gamification stats
 │   │   ├── attendance/      # Handles partitioned table interaction
 │   │   ├── courses/         # Course CRUD management (ADMIN/MANAGER)
 │   │   ├── lessons/         # Manages course material & interacts with Garage S3
-│   │   ├── queue/           # BullMQ Producer (Document heavy lifting)
+│   │   ├── vocabularies/    # Flashcard and Vocabulary CRUD
+│   │   ├── games/           # Educational Games logic (Scramble, Sentence Master, Daily Secret)
 │   │   └── webhooks/        # Endpoint to receive responses from AI Service
 │   └── common/
-├── docker-compose.yml       # (Local dev if needed)
-├── Dockerfile
-├── package.json
-└── tsconfig.json
-```
-
-### AI Service (FastAPI)
-
-```text
-ai-service/
-├── src/
-│   ├── main.py              # Uvicorn entry point
-│   ├── api/
-│   │   ├── v1/
-│   │   │   ├── endpoints/   # REST endpoints
-│   │   │   └── websockets/  # Real-time TTS/STT Voice Chat tunnels
-│   ├── core/
-│   │   ├── config.py        # Pydantic BaseSettings
-│   ├── services/
-│   │   ├── ocr_service.py   # OCR Text Extraction
-│   │   ├── chunker.py       # Text Chunking logic
-│   │   ├── voice.py         # TTS/STT integration
-│   │   └── rag_engine.py    # Pinecone Vector DB operations
-│   ├── workers/
-│   │   └── redis_consumer.py# Redis queue consumer for heavy async processing
-│   └── utils/
-│       └── s3_client.py     # Download/Upload from/to Garage S3
-├── requirements.txt
-└── Dockerfile
 ```
 
 ## 7. API Endpoints & Security
 
 ### 7.1. Authentication Flow
-The system uses **Role-Based Access Control (RBAC)** to secure endpoints. Roles include: `ADMIN`, `TEACHER`, `STUDENT`, `MANAGER`.
+Authentication is handled via role-based access control. Valid roles: `ADMIN`, `TEACHER`, `STUDENT`, `MANAGER`.
 
-Authentication is handled via the underlying `@nestjs/common` logic mimicking an OAuth/JWT provider.
-- **Register:** `POST /api/auth/register` - Creates a new user. The first user registration mocks an `ADMIN` role.
-- **Login:** `POST /api/auth/login` - Authenticates user. Stores `token` and `user` object in `localStorage` securely.
-- **Me:** `GET /api/auth/me` - Retrieves personal information of the authenticated user to render in the client UI.
+- **Login:** `POST /api/auth/login`
+- **Me:** `GET /api/auth/me` - Returns profile including `xp` and `coins`.
 
-### 7.2. Admin Dashboard (DashboardModule)
-Used by the React Client for the administrative overview.
+### 7.2. Learning Materials API (MaterialsModule)
+Management of global resources (PDF, DOCX, etc).
 
-- **Endpoint:** `GET /api/dashboard/overview`
-- **Security:** Requires `ADMIN` or `MANAGER` role.
-- **Response Shape:**
-  ```json
-  {
-    "stats": [
-      { "label": "Total Students", "value": "1,234", "icon": "Users", "color": "blue" },
-      ...
-    ],
-    "recentActivity": [
-      { "id": 1, "type": "STUDENT_ENROLLED", "message": "New student enrolled", "timestamp": "2 hours ago" },
-      ...
-    ]
-  }
-   ```
+- **Upload:** `POST /api/materials/upload`
+- **Download:** `GET /api/materials/download/:id`
+- **Delete:** `DELETE /api/materials/:id`
 
-### 7.3. Courses API (CoursesModule)
+### 7.3. Vocabularies & Flashcards API
+- **List All:** `GET /api/vocabularies`
+- **Create:** `POST /api/vocabularies` (Teacher/Admin only)
+- **Delete:** `DELETE /api/vocabularies/:id`
 
-Full CRUD for course management. Access restricted to `ADMIN` and `MANAGER` roles.
+### 7.4. English Games API
+- **Word Scramble:** `GET /api/games/scramble?count=5`
+- **Verify Answer:** `POST /api/games/scramble/verify`
+- **Available Games**: 
+  - **Sentence Master**: Non-violent grammar builder (Medium).
+  - **Word Scramble**: Spelling practice (Easy).
+  - **Memory Match**: Definition pairing.
 
-#### Create Course
-- **Endpoint:** `POST /api/courses`
-- **Security:** Requires `ADMIN` or `MANAGER` role.
-- **Request Body:**
-  ```json
-  {
-    "name": "IELTS Foundation",
-    "courseCode": "IELTS-001",
-    "level": "INTERMEDIATE",
-    "startDate": "2026-05-01",
-    "endDate": "2026-08-31",
-    "studySchedule": "Mon, Wed, Fri 18:00-20:00",
-    "maxAttendants": 30,
-    "description": "Foundation course for IELTS preparation"
-  }
-  ```
-- **Level values:** `BEGINNER`, `ELEMENTARY`, `INTERMEDIATE`, `UPPER_INTERMEDIATE`, `ADVANCED`
-- **Response:** `201` Returns the created course object.
+### 7.5. Daily Secret Challenge (Gamification)
+A mysterious, personalized high-reward challenge refreshed every 24 hours.
 
-#### List All Courses
-- **Endpoint:** `GET /api/courses?search=ielts`
-- **Security:** Requires `ADMIN` or `MANAGER` role.
-- **Query Params:** `search` (optional) — filters by name or course code.
-- **Response:** `200` Returns an array of course objects.
+- **Get Daily:** `GET /api/games/daily`
+  - Returns a unique, difficult challenge if not completed today.
+- **Verify Daily:** `POST /api/games/daily/verify`
+  - Awards random **XP (50-100)** and **Coins (10-30)** on success.
+  - Updates `lastDailyGameAt` to prevent duplicate claims.
 
-#### Get Course by ID
-- **Endpoint:** `GET /api/courses/:id`
-- **Security:** Requires `ADMIN` or `MANAGER` role.
-- **Response:** `200` Returns the course object. `404` if not found.
-
-#### Update Course
-- **Endpoint:** `PUT /api/courses/:id`
-- **Security:** Requires `ADMIN` or `MANAGER` role.
-- **Request Body:** Partial — only include fields to update.
-  ```json
-  {
-    "name": "IELTS Advanced",
-    "level": "ADVANCED",
-    "status": "ACTIVE"
-  }
-  ```
-- **Status values:** `DRAFT`, `ACTIVE`, `COMPLETED`, `CANCELLED`
-- **Response:** `200` Returns the updated course object.
-
-#### Delete Course
-- **Endpoint:** `DELETE /api/courses/:id`
-- **Security:** Requires `ADMIN` or `MANAGER` role.
-- **Response:** `200` Returns confirmation message.
-
-### 7.4. Course Details & Learning Path
-Management of specific course content including curriculum and materials.
-
-#### Course Detail Screen
-- **Access:** Available to all roles.
-- **Features:** 
-  - **Learning Path:** Admins, Managers, and Teachers can Add, Edit, or Delete units. Students have read-only access.
-  - **Learning Materials:** Admins, Managers, and Teachers can link materials from the global material library. Students have read-only access.
-
-#### Learning Materials Screen
-- **Access:** Restricted to `ADMIN`, `MANAGER`, and `TEACHER` roles.
-- **Security:** Requires non-`STUDENT` role.
-- **Features:** Global library for uploading and managing educational resources (PDFs, Games, Flashcards).
-
-### 7.5. Attendance API (AttendanceModule)
-- **System Options:**
-  - `GET /api/courses/students/available`: Get all available system students.
-  - `GET /api/courses/teachers/available`: Get all available system teachers.
-- **Course Assignment:**
-  - `GET /api/courses/:id/members`: List assigned students to specific course.
-  - `POST /api/courses/:id/members`: Assign students using `{"studentIds": ["uuid", "uuid"]}`.
-  - `GET /api/courses/:id/teachers`: List assigned teachers to specific course.
-  - `POST /api/courses/:id/teachers`: Assign teachers using `{"teacherIds": ["uuid", "uuid"]}`.
-
-#### Course Materials Management
-API for linking materials from the global material library to specific courses.
-
-- **List Course Materials:** `GET /api/courses/:id/materials`
-  - Returns array of materials assigned to the course.
-- **Assign Materials:** `POST /api/courses/:id/materials`
-  - **Body:** `{"materialIds": ["uuid", "uuid"]}`
-- **Unassign Material:** `DELETE /api/courses/:id/materials/:materialId`
-  - Removes the link between the material and the course.
-
-#### Lesson Management (Learning Path)
-API for managing chronological lessons/units within a course.
-
-- **Create Lesson:** `POST /api/lessons`
-  - **Body:** `{"courseId": "uuid", "title": "string", "description": "string", "order": number}`
-- **List Course Lessons:** `GET /api/lessons/course/:courseId`
-  - Returns lessons ordered by `order`.
-- **Update Lesson:** `PUT /api/lessons/:id`
-  - **Body:** `{"title": "string", "description": "string"}`
-- **Delete Lesson:** `DELETE /api/lessons/:id`
-
-
-
-Full API to handle roll call and attendance spreadsheet management.
-
-
-#### Take Attendance (Directly)
-- **Endpoint:** `POST /api/attendance/take`
-- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
-- **Request Body:**
-  ```json
-  {
-    "classId": "uuid",
-    "date": "2026-04-09",
-    "records": [
-      { "studentId": "uuid", "status": "PRESENT" },
-      { "studentId": "uuid", "status": "ABSENT" }
-    ]
-  }
-  ```
-- **Response:** `201` Returns success message.
-
-#### Export Attendance Template
-- **Endpoint:** `GET /api/attendance/export/:classId`
-- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
-- **Response:** `200` Downloads `attendance_template_{classId}.xlsx` containing all active students.
-
-#### Import Attendance from Excel
-- **Endpoint:** `POST /api/attendance/import/:classId`
-- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
-- **Request Format:** `multipart/form-data`
-  - `file`: The Excel `.xlsx` file filled directly from the exported template.
-  - `date`: Ensure passing formatted string `YYYY-MM-DD`.
-- **Response:** `201` Returns success message.
-
-### 7.6. Learning Materials API (MaterialsModule)
-Management of the global material library. Files are stored locally in the `local-library/` folder at the project root.
-
-#### Upload Material
-- **Endpoint:** `POST /api/materials/upload`
-- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
-- **Form Data:**
-  - `file`: The file to upload (PDF, XLSX, or PPTX). Max 50MB.
-  - `uploadedById`: UUID of the user performing the upload.
-  - `courseId` (Optional): Associate material with a specific course.
-- **Response:** `201` Returns the created material metadata.
-
-#### List All Materials
-- **Endpoint:** `GET /api/materials`
-- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
-- **Response:** `200` Returns an array of material objects including uploader details.
-
-#### Download Material
-- **Endpoint:** `GET /api/materials/download/:id`
-- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
-- **Response:** `200` Streams the specified file with its original filename.
-
-#### Delete Material
-- **Endpoint:** `DELETE /api/materials/:id`
-- **Security:** Requires `ADMIN`, `MANAGER`, or `TEACHER` role.
-- **Permission Rules:**
-  - `ADMIN` and `MANAGER` can delete any material.
-  - `TEACHER` can only delete materials they uploaded themselves.
-- **Response:** `200` Returns confirmation. Deletes both DB record and local file.
-
-
-## 8. Storage & File Management
-
-### 8.1. Local Library
-For development and local deployments, materials are stored in:
-`ROOT/local-library/`
-
-This folder is excluded from Git but is required for the Core Service. The service will auto-create this folder if it doesn't exist during bootstrap.
+## 8. Localization (i18n)
+The system supports full real-time language switching:
+- **Languages**: English (`en`), Vietnamese (`vi`).
+- **Scope**: All UI labels, menu titles, instructional text, feedback messages, and game roadmaps.
+- **Storage**: User preference persisted via `localStorage`.
 
 ## 9. Running the Services (Development)
 
-
-
-### 7.1. Infrastructure (Database, Redis, Storage)
-
-The system requires external services (PostgreSQL, Redis, Garage S3) to be running. Use Docker Compose to spin them up locally:
-
+### 9.1. Infrastructure
 ```bash
-docker compose up -d
+docker compose up -d # PostgreSQL, Redis, Garage S3
 ```
 
-> **Database Migration Scripts** are located in `core-service/src/init-scripts/`.
-> They auto-run on first `docker compose up` via PostgreSQL's `docker-entrypoint-initdb.d`.
->
-> | Script | Purpose |
-> |---|---|
-> | `01-init.sql` | Base schema: accounts, profiles, classes, attendance, lessons, AI tables |
-> | `02-courses.sql` | Courses table with level/status enums, constraints, and indexes |
->
-> **For existing databases**, run the new migration manually:
-> ```bash
-> # Connect to PostgreSQL and execute the migration
-> docker exec -i lms-postgres psql -U lms_admin -d lms_db < core-service/src/init-scripts/02-courses.sql
-> ```
->
-> **Note:** Since `synchronize: true` is enabled in TypeORM config, the `courses` table will also be auto-created by the NestJS entity on service startup. The SQL script is provided for production-grade manual migrations.
-
-### 7.2. NestJS Core Service (NestJS)
-
-Managed within the `core-service/src` directory.
-
+### 9.2. Core Service (NestJS)
 ```bash
-# Navigate to service root
 cd core-service/src
-
-# Install dependencies  
 npm install
-
-# Run in development mode (watches for changes)
 npm run start:dev
 ```
 
-### 7.3. Python AI Service (FastAPI)
-
-Managed within the `ai-service` directory.
-
+### 9.3. React Client (Vite)
 ```bash
-# Navigate to service root
-cd ai-service
-
-# (Highly Recommended) Create and activate a virtual environment
-python -m venv venv
-# On Windows:
-.\venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the API server with Uvicorn
-uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### 7.4. React Client Service (Vite)
-
-Managed within the `client` directory.
-
-```bash
-# Navigate to client root
 cd client
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
 # Next plan
-Test security, performance, and scalability of the system.
+1. **Audio Integration**: Add Text-to-Speech (TTS) for vocabulary pronunciation.
+2. **Leaderboard**: Implement a global leaderboard based on XP and Coins.
+3. **Advanced Games**: Complete "Memory Match" and "Listen & Type" implementations.

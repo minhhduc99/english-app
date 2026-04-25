@@ -4,9 +4,11 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'; // Placeho
 import { DashboardService } from '../services/dashboard.service';
 import { Role } from '../../../common/enums/role.enum';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { AuthGuard } from '../../../common/guards/auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 
 @Controller('dashboard')
+@UseGuards(AuthGuard, RolesGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
@@ -27,5 +29,14 @@ export class DashboardController {
   async getOverview(@Request() req) {
     // In a prod system, we would log accessing user: req.user.id
     return this.dashboardService.getOverview();
+  }
+
+  @Get('teacher-stats')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Retrieve teacher-specific dashboard statistics' })
+  @ApiResponse({ status: 200, description: 'Stats successfully retrieved.' })
+  async getTeacherStats(@Request() req) {
+    return this.dashboardService.getTeacherStats(req.user.id);
   }
 }

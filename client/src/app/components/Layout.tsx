@@ -21,12 +21,14 @@ import {
   CreditCard,
   Trophy,
   Map,
+  Gamepad2,
 } from "lucide-react";
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [studentsExpanded, setStudentsExpanded] = useState(true);
+  const [materialsExpanded, setMaterialsExpanded] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { t } = useLanguage();
   
@@ -84,9 +86,20 @@ export function Layout() {
       return [
         { path: "/", label: t("menu.home"), icon: Home },
         { path: "/courses", label: t("menu.my_courses"), icon: BookOpen },
-        { path: "/learning-path", label: t("menu.learning_path"), icon: Map },
         { path: "/ai-speaking", label: t("menu.ai_speaking"), icon: Mic },
-        { path: "/flashcards", label: t("menu.flashcards"), icon: CreditCard },
+        {
+          path: "/learning-materials",
+          label: t("menu.learning_materials"),
+          icon: FolderOpen,
+          expandable: true,
+          isOpen: materialsExpanded,
+          toggle: () => setMaterialsExpanded(!materialsExpanded),
+          subItems: [
+            { path: "/learning-path", label: t("menu.learning_path") },
+            { path: "/flashcards", label: t("menu.flashcards") },
+            { path: "/english-games", label: t("menu.english_games") },
+          ],
+        },
         { path: "/achievements", label: t("menu.achievements"), icon: Trophy },
       ];
     }
@@ -98,6 +111,8 @@ export function Layout() {
         label: t("menu.students"),
         icon: Users,
         expandable: true,
+        isOpen: studentsExpanded,
+        toggle: () => setStudentsExpanded(!studentsExpanded),
         subItems: [
           { path: "/students", label: t("menu.student_management") },
           { path: "/attendance", label: t("menu.attendance") },
@@ -105,7 +120,21 @@ export function Layout() {
       },
       // Only show User Management for Admins
       ...(user.role === "ADMIN" ? [{ path: "/user-management", label: t("menu.user_management"), icon: ShieldCheck }] : []),
-      ...(["ADMIN", "MANAGER", "TEACHER"].includes(user.role) ? [{ path: "/learning-materials", label: t("menu.learning_materials"), icon: FolderOpen }] : []),
+      ...(["ADMIN", "MANAGER", "TEACHER"].includes(user.role) ? [
+        {
+          path: "/learning-materials",
+          label: t("menu.learning_materials"),
+          icon: FolderOpen,
+          expandable: true,
+          isOpen: materialsExpanded,
+          toggle: () => setMaterialsExpanded(!materialsExpanded),
+          subItems: [
+            { path: "/learning-materials", label: t("menu.learning_materials") },
+            { path: "/flashcard-management", label: t("menu.flashcards") },
+            { path: "/english-games", label: t("menu.english_games") },
+          ],
+        }
+      ] : []),
       { path: "/reports", label: t("menu.reports"), icon: FileText },
       { path: "/settings", label: t("menu.settings"), icon: Settings },
     ];
@@ -132,11 +161,15 @@ export function Layout() {
   const pageTitle = getPageTitle();
 
 
-  const isActive = (path: string) => {
-    if (path === "/") {
+  const isItemActive = (item: any) => {
+    if (item.path === "/") {
       return location.pathname === "/";
     }
-    return location.pathname.startsWith(path);
+    if (location.pathname.startsWith(item.path)) return true;
+    if (item.subItems) {
+      return item.subItems.some((sub: any) => location.pathname === sub.path);
+    }
+    return false;
   };
 
   return (
@@ -176,11 +209,9 @@ export function Layout() {
                   {item.expandable ? (
                     <>
                       <button
-                        onClick={() =>
-                          setStudentsExpanded(!studentsExpanded)
-                        }
+                        onClick={item.toggle}
                         className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-colors ${
-                          isActive(item.path)
+                          isItemActive(item)
                             ? "bg-[#E8F0FE] text-[#1A73E8]"
                             : "text-gray-700 hover:bg-gray-50"
                         }`}
@@ -191,11 +222,11 @@ export function Layout() {
                         </div>
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
-                            studentsExpanded ? "rotate-180" : ""
+                            item.isOpen ? "rotate-180" : ""
                           }`}
                         />
                       </button>
-                      {studentsExpanded && item.subItems && (
+                      {item.isOpen && item.subItems && (
                         <ul className="mt-1 ml-4 space-y-1">
                           {item.subItems.map((subItem) => (
                             <li key={subItem.path}>
@@ -223,7 +254,7 @@ export function Layout() {
                       to={item.path}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
-                        isActive(item.path)
+                        isItemActive(item)
                           ? "bg-[#E8F0FE] text-[#1A73E8]"
                           : "text-gray-700 hover:bg-gray-50"
                       }`}

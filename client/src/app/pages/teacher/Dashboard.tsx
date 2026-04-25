@@ -19,6 +19,7 @@ import {
   GraduationCap,
   CheckCircle,
 } from "lucide-react";
+import { useNavigate } from "react-router";
 import { translateSchedule } from "../../utils/schedule";
 import { useLanguage } from "../../contexts/LanguageContext";
 
@@ -34,9 +35,18 @@ interface Course {
 
 export function Dashboard() {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [selectedDate] = useState(new Date());
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ 
+    materials: { 
+      total: 0, 
+      thisMonth: 0, 
+      types: [] as { type: string; count: number }[],
+      categories: [] as { category: string; count: number }[]
+    } 
+  });
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -57,7 +67,24 @@ export function Dashboard() {
       }
     };
 
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/dashboard/teacher-stats", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      }
+    };
+
     fetchCourses();
+    fetchStats();
   }, []);
 
   const getDayName = (date: Date) => {
@@ -175,14 +202,35 @@ export function Dashboard() {
 
   // Learning Materials Statistics
   const materialStats = {
-    total: 342,
-    thisMonth: 28,
-    byType: [
-      { type: "PDFs", count: 156, icon: FileText, color: "bg-red-50 text-red-600" },
-      { type: "Videos", count: 89, icon: Video, color: "bg-purple-50 text-purple-600" },
-      { type: "Images", count: 67, icon: Image, color: "bg-green-50 text-green-600" },
-      { type: "Worksheets", count: 30, icon: FileSpreadsheet, color: "bg-blue-50 text-blue-600" },
+    total: stats.materials.total,
+    thisMonth: stats.materials.thisMonth,
+    byType: stats.materials.types.length > 0 ? stats.materials.types.map((item) => {
+      const typeConfig: Record<string, { icon: any, color: string, label: string }> = {
+        PDF: { icon: FileText, color: "bg-red-50 text-red-600", label: "PDFs" },
+        MP4: { icon: Video, color: "bg-purple-50 text-purple-600", label: "Videos" },
+        PNG: { icon: Image, color: "bg-green-50 text-green-600", label: "Images" },
+        JPG: { icon: Image, color: "bg-green-50 text-green-600", label: "Images" },
+        JPEG: { icon: Image, color: "bg-green-50 text-green-600", label: "Images" },
+        XLSX: { icon: FileSpreadsheet, color: "bg-blue-50 text-blue-600", label: "Sheets" },
+        XLS: { icon: FileSpreadsheet, color: "bg-blue-50 text-blue-600", label: "Sheets" },
+        PPTX: { icon: FileText, color: "bg-orange-50 text-orange-600", label: "Slides" },
+        PPT: { icon: FileText, color: "bg-orange-50 text-orange-600", label: "Slides" },
+        DOCX: { icon: FileText, color: "bg-blue-50 text-blue-800", label: "Documents" },
+        DOC: { icon: FileText, color: "bg-blue-50 text-blue-800", label: "Documents" },
+      };
+      const config = typeConfig[item.type] || { icon: FileText, color: "bg-gray-50 text-gray-600", label: item.type };
+      return {
+        type: config.label,
+        count: item.count,
+        icon: config.icon,
+        color: config.color
+      };
+    }) : [
+      { type: t("menu.learning_materials"), count: 0, icon: FolderOpen, color: "bg-gray-50 text-gray-600" }
     ],
+    // Flashcard and Game stats from categories
+    flashcards: stats.materials.categories.find(c => c.category === 'FLASHCARD')?.count || 0,
+    games: stats.materials.categories.find(c => c.category === 'GAME')?.count || 0,
   };
 
   // Today's Absent Students
@@ -467,7 +515,10 @@ export function Dashboard() {
                 <p className="text-sm text-gray-500">{t("dashboard.total_materials_desc")}</p>
               </div>
             </div>
-            <button className="text-sm text-[#1A73E8] hover:underline font-medium">
+            <button 
+              onClick={() => navigate("/learning-materials")}
+              className="text-sm text-[#1A73E8] hover:underline font-medium"
+            >
               {t("dashboard.upload_new")}
             </button>
           </div>

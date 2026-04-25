@@ -10,6 +10,7 @@ import {
   Edit,
   Trash2,
   Download,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -20,6 +21,7 @@ interface Material {
   originalName: string;
   fileName: string;
   fileType: string;
+  category: string;
   size: number;
   uploadedById: string;
   uploadedBy: {
@@ -36,6 +38,8 @@ export function LearningMaterials() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadCategory, setUploadCategory] = useState("GENERAL");
 
   const fetchMaterials = async () => {
     try {
@@ -63,12 +67,14 @@ export function LearningMaterials() {
 
   const stats = [
     { label: t("materials.total_materials"), value: materials.length.toString(), icon: FileText, color: "bg-blue-50 text-blue-600" },
-    { label: t("materials.pdf_images"), value: materials.filter(m => m.fileType === 'PDF').length.toString(), icon: ImageIcon, color: "bg-green-50 text-green-600" },
-    { label: t("materials.flashcards"), value: "0", icon: CreditCard, color: "bg-purple-50 text-purple-600" },
-    { label: t("materials.games"), value: "0", icon: Gamepad2, color: "bg-orange-50 text-orange-600" },
+    { label: t("materials.pdf_images"), value: materials.filter(m => m.category === 'GENERAL' || !m.category).length.toString(), icon: ImageIcon, color: "bg-green-50 text-green-600" },
+    { label: t("materials.flashcards"), value: materials.filter(m => m.category === 'FLASHCARD').length.toString(), icon: CreditCard, color: "bg-purple-50 text-purple-600" },
+    { label: t("materials.games"), value: materials.filter(m => m.category === 'GAME').length.toString(), icon: Gamepad2, color: "bg-orange-50 text-orange-600" },
   ];
 
-  const uploadFile = async (files: FileList) => {
+  const handleSaveUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    
     if (!currentUser?.id) {
       toast.error("User session not found");
       return;
@@ -77,10 +83,11 @@ export function LearningMaterials() {
     setUploading(true);
     let successCount = 0;
 
-    for (let i = 0; i < files.length; i++) {
+    for (let i = 0; i < selectedFiles.length; i++) {
       const formData = new FormData();
-      formData.append("file", files[i]);
+      formData.append("file", selectedFiles[i]);
       formData.append("uploadedById", currentUser.id);
+      formData.append("category", uploadCategory);
 
       try {
         const res = await fetch("/api/materials/upload", {
@@ -95,18 +102,23 @@ export function LearningMaterials() {
           successCount++;
         } else {
           const data = await res.json();
-          toast.error(data.message || `Failed to upload ${files[i].name}`);
+          toast.error(data.message || `Failed to upload ${selectedFiles[i].name}`);
         }
       } catch (error) {
-        toast.error(`Error uploading ${files[i].name}`);
+        toast.error(`Error uploading ${selectedFiles[i].name}`);
       }
     }
 
     if (successCount > 0) {
       toast.success(t("materials.upload_success"));
       fetchMaterials();
+      setSelectedFiles([]); // Clear after success
     }
     setUploading(false);
+  };
+
+  const handleCancelUpload = () => {
+    setSelectedFiles([]);
   };
 
   const handleDownload = async (id: string, fileName: string) => {
@@ -176,13 +188,15 @@ export function LearningMaterials() {
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      uploadFile(e.dataTransfer.files);
+      const newFiles = Array.from(e.dataTransfer.files);
+      setSelectedFiles(prev => [...prev, ...newFiles]);
     }
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      uploadFile(e.target.files);
+      const newFiles = Array.from(e.target.files);
+      setSelectedFiles(prev => [...prev, ...newFiles]);
     }
   };
 
@@ -227,35 +241,98 @@ export function LearningMaterials() {
 
       {/* Upload Card */}
       <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
-        <h2 className="text-lg font-bold text-gray-900 mb-6">{t("materials.upload_title")}</h2>
-        <div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
-            dragActive
-              ? "border-[#1A73E8] bg-[#E8F0FE] scale-[1.01]"
-              : "border-gray-200 hover:border-[#1A73E8]/50 hover:bg-gray-50"
-          }`}
-        >
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-[#E8F0FE] rounded-full flex items-center justify-center">
-              <Upload className={`w-8 h-8 text-[#1A73E8] ${uploading ? 'animate-bounce' : ''}`} />
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-gray-900">{t("materials.upload_title")}</h2>
+          {selectedFiles.length > 0 && !uploading && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">{t("materials.category")}:</span>
+              <select 
+                value={uploadCategory} 
+                onChange={(e) => setUploadCategory(e.target.value)}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
+              >
+                <option value="GENERAL">{t("materials.general")}</option>
+                <option value="FLASHCARD">{t("materials.flashcard")}</option>
+                <option value="GAME">{t("materials.game")}</option>
+              </select>
             </div>
-            <div>
-              <p className="text-lg font-bold text-gray-900 mb-1">{t("materials.drop_hint")}</p>
-              <p className="text-sm text-gray-500">{t("materials.supported_formats")}</p>
-            </div>
-            <label className="cursor-pointer">
-              <input type="file" multiple accept=".pdf,.xlsx,.pptx" onChange={handleFileInput} className="hidden" disabled={uploading} />
-              <span className={`inline-flex items-center gap-2 px-8 py-3.5 bg-[#1A73E8] text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-100 ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#1557B0] hover:scale-105 active:scale-95'}`}>
-                <Upload className="w-5 h-5" />
-                {uploading ? t("auth.processing") : t("materials.upload_title")}
-              </span>
-            </label>
-          </div>
+          )}
         </div>
+        
+        {selectedFiles.length > 0 ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {selectedFiles.map((file, idx) => (
+                <div key={idx} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 relative group">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-[#1A73E8]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">{file.name}</p>
+                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 shadow-sm transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-50">
+              <button 
+                onClick={handleCancelUpload}
+                disabled={uploading}
+                className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-all disabled:opacity-50"
+              >
+                {t("common.cancel")}
+              </button>
+              <button 
+                onClick={handleSaveUpload}
+                disabled={uploading}
+                className="inline-flex items-center gap-2 px-8 py-2.5 bg-[#1A73E8] text-white rounded-xl font-bold hover:bg-[#1557B0] transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+              >
+                {uploading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5" />
+                )}
+                {uploading ? t("auth.processing") : t("common.save")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
+              dragActive
+                ? "border-[#1A73E8] bg-[#E8F0FE] scale-[1.01]"
+                : "border-gray-200 hover:border-[#1A73E8]/50 hover:bg-gray-50"
+            }`}
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 bg-[#E8F0FE] rounded-full flex items-center justify-center">
+                <Upload className={`w-8 h-8 text-[#1A73E8] ${uploading ? 'animate-bounce' : ''}`} />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 mb-1">{t("materials.drop_hint")}</p>
+                <p className="text-sm text-gray-500">{t("materials.supported_formats")}</p>
+              </div>
+              <label className="cursor-pointer">
+                <input type="file" multiple accept=".pdf,.xlsx,.pptx" onChange={handleFileInput} className="hidden" disabled={uploading} />
+                <span className={`inline-flex items-center gap-2 px-8 py-3.5 bg-[#1A73E8] text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-100 ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#1557B0] hover:scale-105 active:scale-95'}`}>
+                  <Upload className="w-5 h-5" />
+                  {uploading ? t("auth.processing") : t("materials.upload_title")}
+                </span>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Library Table */}

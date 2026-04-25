@@ -57,11 +57,12 @@ export class MaterialsController {
     @UploadedFile() file: Express.Multer.File,
     @Body('uploadedById') uploadedById: string,
     @Body('courseId') courseId?: string,
+    @Body('category') category?: string,
   ) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    return await this.materialsService.create(file, uploadedById, courseId);
+    return await this.materialsService.create(file, uploadedById, courseId, category);
   }
 
   @Get()

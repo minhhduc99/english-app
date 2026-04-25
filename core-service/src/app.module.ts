@@ -12,6 +12,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { MaterialsModule } from './modules/materials/materials.module';
+import { VocabulariesModule } from './modules/vocabularies/vocabularies.module';
+import { GamesModule } from './modules/games/games.module';
 
 @Module({
   imports: [
@@ -55,6 +57,8 @@ import { MaterialsModule } from './modules/materials/materials.module';
     MaterialsModule,
     QueueModule,
     WebhooksModule,
+    VocabulariesModule,
+    GamesModule,
   ],
 })
 export class AppModule {}

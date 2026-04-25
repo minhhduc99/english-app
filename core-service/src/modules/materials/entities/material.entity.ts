@@ -31,6 +31,9 @@ export class Material {
   @JoinColumn({ name: 'uploadedById' })
   uploadedBy: User;
 
+  @Column({ default: 'GENERAL' })
+  category: string; // GENERAL, FLASHCARD, GAME
+
   @Column({ default: 'Published' })
   status: string;
 

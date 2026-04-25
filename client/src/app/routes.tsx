@@ -16,6 +16,8 @@ import { LearningPath } from "./pages/student/LearningPath";
 import { AISpeaking } from "./pages/student/AISpeaking";
 import { Flashcards } from "./pages/student/Flashcards";
 import { Achievements } from "./pages/student/Achievements";
+import { FlashcardManagement } from "./pages/FlashcardManagement";
+import { EnglishGames } from "./pages/EnglishGames";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: Login },
@@ -34,9 +36,11 @@ export const router = createBrowserRouter([
       { path: "settings", Component: Settings },
       { path: "reports", Component: Reports },
       { path: "learning-materials", Component: LearningMaterials },
+      { path: "flashcard-management", Component: FlashcardManagement },
       { path: "learning-path", Component: LearningPath },
       { path: "ai-speaking", Component: AISpeaking },
       { path: "flashcards", Component: Flashcards },
+      { path: "english-games", Component: EnglishGames },
       { path: "achievements", Component: Achievements },
     ],
   },

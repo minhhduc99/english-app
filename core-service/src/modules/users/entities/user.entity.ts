@@ -31,6 +31,15 @@ export class User {
   @Column({ default: false })
   isTemporaryPassword!: boolean;
 
+  @Column({ default: 0 })
+  xp!: number;
+
+  @Column({ default: 0 })
+  coins!: number;
+
+  @Column({ type: 'date', nullable: true })
+  lastDailyGameAt!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 
