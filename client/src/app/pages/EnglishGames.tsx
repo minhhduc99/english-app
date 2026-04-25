@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Gamepad2, Brain, Search, BookOpen, MessageSquare, X, Sparkles, Trophy, Coins, Star, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
 
 export function EnglishGames() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const gameSuggestions = [
     {
@@ -60,6 +62,7 @@ export function EnglishGames() {
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState<{ level: number; xp: number } | null>(null);
 
   useEffect(() => {
     fetchDailyStatus();
@@ -165,6 +168,20 @@ export function EnglishGames() {
       if (res.ok) {
         const result = await res.json();
         setGameFeedback(result);
+        if (result.stats) {
+            const cached = localStorage.getItem("user");
+            if (cached) {
+                const u = JSON.parse(cached);
+                u.xp = result.stats.totalXp;
+                u.coins = result.stats.totalCoins;
+                localStorage.setItem("user", JSON.stringify(u));
+                // Fire storage event for UI sync
+                window.dispatchEvent(new Event('storage'));
+            }
+        }
+        if (result.stats?.levelUp) {
+            setShowLevelUp({ level: result.stats.currentLevel, xp: result.stats.totalXp });
+        }
         if (result.success) {
           toast.success(t("games.correct"));
           if (isDaily) {
@@ -213,7 +230,36 @@ export function EnglishGames() {
         toast.success("Match found!");
         
         if (matchedPairs.length + 1 === memoryCards.length / 2) {
-          setTimeout(() => {
+          setTimeout(async () => {
+            try {
+              const res = await fetch("/api/games/reward", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("token")}`
+                },
+                body: JSON.stringify({ mode: 'memory' })
+              });
+              if (res.ok) {
+                const result = await res.json();
+                setGameFeedback(result);
+                if (result.stats) {
+                    const cached = localStorage.getItem("user");
+                    if (cached) {
+                        const u = JSON.parse(cached);
+                        u.xp = result.stats.totalXp;
+                        u.coins = result.stats.totalCoins;
+                        localStorage.setItem("user", JSON.stringify(u));
+                        window.dispatchEvent(new Event('storage'));
+                    }
+                }
+                if (result.stats?.levelUp) {
+                  setShowLevelUp({ level: result.stats.currentLevel, xp: result.stats.totalXp });
+                }
+              }
+            } catch (e) {
+              console.error("Reward error", e);
+            }
             toast.success(t("games.congrats"));
             setPlayingGame(null);
           }, 1000);
@@ -473,6 +519,39 @@ export function EnglishGames() {
     );
   }
 
+  if (showLevelUp) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-500">
+        <div className="relative bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 p-1 rounded-[3rem] shadow-2xl shadow-orange-500/50 animate-in zoom-in-95 duration-500 scale-110">
+          <div className="bg-white rounded-[2.8rem] p-12 text-center relative overflow-hidden">
+             <div className="absolute top-10 left-10 w-4 h-4 bg-yellow-400 rounded-full animate-ping" />
+             <div className="absolute bottom-10 right-10 w-6 h-6 bg-blue-400 rounded-full animate-bounce" />
+             <div className="absolute top-1/2 right-4 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+             
+             <div className="relative z-10">
+                <div className="w-32 h-32 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+                  <Star className="w-16 h-16 text-yellow-600" />
+                </div>
+                <h2 className="text-5xl font-black text-gray-900 mb-2 uppercase tracking-tighter">Level Up!</h2>
+                <div className="inline-block px-8 py-2 bg-yellow-500 text-white rounded-full text-2xl font-black mb-6">
+                  LEVEL {showLevelUp.level}
+                </div>
+                <p className="text-gray-500 font-bold text-lg mb-10">
+                    You've reached a new milestone! Keep up the great work.
+                </p>
+                <button 
+                  onClick={() => setShowLevelUp(null)}
+                  className="w-full py-5 bg-[#111827] text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl"
+                >
+                  AWESOME!
+                </button>
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
       <div className="text-center max-w-2xl mx-auto">
@@ -582,6 +661,37 @@ export function EnglishGames() {
             </button>
           </div>
         ))}
+      </div>
+
+      {/* Secret Store Banner */}
+      <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-black rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group cursor-pointer border border-white/10"
+           onClick={() => navigate("/secret-store")}>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full -mr-48 -mt-48 blur-[80px]" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                    <span className="px-3 py-1 bg-yellow-500 text-black text-[10px] font-black rounded-full uppercase tracking-widest">Premium Store</span>
+                </div>
+                <h3 className="text-4xl font-black mb-4 tracking-tight">Monthly Secret Store</h3>
+                <p className="text-gray-400 font-medium text-lg max-w-lg">
+                    Exchange your earned <span className="text-yellow-400 font-bold">EduCoins</span> for limited-edition avatars, gift cards, and exclusive real-world vouchers. 
+                </p>
+            </div>
+            <div className="flex items-center gap-10">
+                 <div className="text-center group-hover:scale-110 transition-transform duration-500">
+                    <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mb-3 backdrop-blur-md border border-white/20">
+                        <Trophy className="w-10 h-10 text-yellow-400" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Prizes</span>
+                 </div>
+                 <div className="text-center group-hover:scale-110 transition-transform duration-500 delay-75">
+                    <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mb-3 backdrop-blur-md border border-white/20">
+                        <Coins className="w-10 h-10 text-yellow-400" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Currency</span>
+                 </div>
+            </div>
+        </div>
       </div>
 
       <div className="bg-gradient-to-br from-[#111827] to-[#374151] rounded-[2.5rem] p-10 text-white shadow-2xl shadow-gray-200 overflow-hidden relative">

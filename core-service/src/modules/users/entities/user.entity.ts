@@ -1,7 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToOne } from 'typeorm';
 import { Role } from '../../../common/enums/role.enum';
 import { Exclude } from 'class-transformer';
 import * as bcrypt from 'bcryptjs';
+import { StudentStats } from './student-stats.entity';
 
 @Entity('users')
 export class User {
@@ -31,14 +32,8 @@ export class User {
   @Column({ default: false })
   isTemporaryPassword!: boolean;
 
-  @Column({ default: 0 })
-  xp!: number;
-
-  @Column({ default: 0 })
-  coins!: number;
-
-  @Column({ type: 'date', nullable: true })
-  lastDailyGameAt!: string | null;
+  @OneToOne(() => StudentStats, (stats) => stats.user, { cascade: true, eager: true })
+  studentStats?: StudentStats;
 
   @CreateDateColumn()
   createdAt!: Date;

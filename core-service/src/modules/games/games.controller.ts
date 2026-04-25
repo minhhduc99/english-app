@@ -13,8 +13,8 @@ export class GamesController {
   }
 
   @Post('scramble/verify')
-  async verifyScramble(@Body() body: { id: string; answer: string }) {
-    return this.gamesService.verifyScramble(body.id, body.answer);
+  async verifyScramble(@Request() req, @Body() body: { id: string; answer: string }) {
+    return this.gamesService.verifyScramble(req.user.id, body.id, body.answer);
   }
 
   @Get('sentence')
@@ -23,13 +23,18 @@ export class GamesController {
   }
 
   @Post('sentence/verify')
-  async verifySentence(@Body() body: { id: string; answer: string }) {
-    return this.gamesService.verifySentence(body.id, body.answer);
+  async verifySentence(@Request() req, @Body() body: { id: string; answer: string }) {
+    return this.gamesService.verifySentence(req.user.id, body.id, body.answer);
   }
 
   @Get('memory')
   async getMemoryMatch(@Query('count') count: number) {
     return this.gamesService.generateMemoryMatch(count || 6);
+  }
+
+  @Post('reward')
+  async awardReward(@Request() req, @Body() body: { mode: string }) {
+     return this.gamesService.awardGameReward(req.user.id, body.mode);
   }
 
   @Get('daily')

@@ -31,6 +31,7 @@ export class AuthService {
     const newUser = this.userRepository.create({
       ...registerDto,
       role: assignedRole,
+      studentStats: assignedRole === Role.STUDENT ? {} : undefined,
     });
     
     await this.userRepository.save(newUser);
@@ -53,7 +54,8 @@ export class AuthService {
     const newUser = this.userRepository.create({
       ...registerDto,
       role: role,
-      isTemporaryPassword: isTemporary
+      isTemporaryPassword: isTemporary,
+      studentStats: role === Role.STUDENT ? {} : undefined,
     });
     
     await this.userRepository.save(newUser);
@@ -71,12 +73,10 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(loginDto.password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
-
-    const { password, ...result } = user;
     
     return {
       message: 'Login successful',
-      user: result,
+      user: this.flattenUser(user),
       requiresPasswordChange: user.isTemporaryPassword,
       token: Buffer.from(user.id).toString('base64')
     };
@@ -97,12 +97,22 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
     
-    const { password, ...result } = user;
-    return result;
+    return this.flattenUser(user);
   }
 
   async logout() {
     // In a real app with server-side sessions or token blacklisting, logic would go here.
     return { message: 'Logout successful' };
+  }
+
+  private flattenUser(user: User) {
+    const { password, studentStats, ...result } = user;
+    return {
+      ...result,
+      xp: studentStats?.xp || 0,
+      coins: studentStats?.coins || 0,
+      lastDailyGameAt: studentStats?.lastDailyGameAt || null,
+      streakDays: studentStats?.streakDays || 0,
+    };
   }
 }

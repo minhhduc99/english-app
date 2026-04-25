@@ -88,7 +88,7 @@ export class GamesService {
     if (!user) throw new NotFoundException('User not found');
 
     const today = new Date().toISOString().split('T')[0];
-    if (user.lastDailyGameAt === today) {
+    if (user.studentStats?.lastDailyGameAt === today) {
       return { completed: true, message: 'Daily challenge already completed!' };
     }
 
@@ -117,22 +117,23 @@ export class GamesService {
     if (!user) throw new NotFoundException('User not found');
 
     const today = new Date().toISOString().split('T')[0];
-    if (user.lastDailyGameAt === today) {
+    if (user.studentStats?.lastDailyGameAt === today) {
        throw new ForbiddenException('You have already completed the daily challenge today.');
     }
 
-    const result = await this.verifyScramble(id, answer);
+    const result = await this.verifyScramble(null!, id, answer);
 
     if (result.success) {
       // Random reward
       const xp = Math.floor(Math.random() * 50) + 50;
       const coins = Math.floor(Math.random() * 20) + 10;
       
-      await this.usersService.addRewards(userId, xp, coins);
+      const stats = await this.usersService.addRewards(userId, xp, coins, true);
       
       return {
         ...result,
         rewards: { xp, coins },
+        stats,
       };
     }
 
@@ -158,21 +159,34 @@ export class GamesService {
     return scrambled;
   }
 
-  async verifyScramble(id: string, answer: string) {
+  async verifyScramble(userId: string, id: string, answer: string) {
     const vocab = await this.vocabulariesService.findAll(); 
     const item = vocab.find(v => v.id === id);
     
     if (!item) return { success: false, message: 'Word not found' };
 
     const isCorrect = item.word.toLowerCase() === answer.toLowerCase();
+    
+    let rewards = null;
+    let stats = null;
+
+    if (isCorrect && userId) {
+      const xp = 20;
+      const coins = 5;
+      stats = await this.usersService.addRewards(userId, xp, coins, false);
+      rewards = { xp, coins };
+    }
+
     return {
       success: isCorrect,
       correctWord: isCorrect ? item.word : null,
       message: isCorrect ? 'Correct!' : 'Try again!',
+      rewards,
+      stats,
     };
   }
 
-  async verifySentence(id: string, answer: string) {
+  async verifySentence(userId: string, id: string, answer: string) {
     const vocab = await this.vocabulariesService.findAll();
     const item = vocab.find(v => v.id === id);
     
@@ -183,10 +197,41 @@ export class GamesService {
     const normalizedCorrect = item.example.toLowerCase().trim().replace(/[.,!?;]$/, '');
 
     const isCorrect = normalizedAnswer === normalizedCorrect;
+
+    let rewards = null;
+    let stats = null;
+
+    if (isCorrect && userId) {
+      const xp = 30;
+      const coins = 10;
+      stats = await this.usersService.addRewards(userId, xp, coins, false);
+      rewards = { xp, coins };
+    }
+
     return {
       success: isCorrect,
       correctSentence: isCorrect ? item.example : null,
       message: isCorrect ? 'Correct!' : 'Try again!',
+      rewards,
+      stats,
+    };
+  }
+
+  async awardGameReward(userId: string, mode: string) {
+    let xp = 10;
+    let coins = 2;
+
+    if (mode === 'memory') {
+      xp = 40;
+      coins = 15;
+    }
+
+    const stats = await this.usersService.addRewards(userId, xp, coins, false);
+    
+    return {
+      success: true,
+      rewards: { xp, coins },
+      stats,
     };
   }
 }

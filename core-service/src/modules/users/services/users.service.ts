@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { StudentStats } from '../entities/student-stats.entity';
 import { Role } from '../../../common/enums/role.enum';
 
 @Injectable()
@@ -9,6 +10,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(StudentStats)
+    private readonly statsRepository: Repository<StudentStats>,
   ) {}
 
   async findAllStudents(): Promise<any[]> {
@@ -66,14 +69,32 @@ export class UsersService {
     return updated;
   }
 
-  async addRewards(userId: string, xp: number, coins: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+  async addRewards(userId: string, xp: number, coins: number, isDaily: boolean = false): Promise<any> {
+    let stats = await this.statsRepository.findOne({ where: { user_id: userId } });
     
-    user.xp = (user.xp || 0) + xp;
-    user.coins = (user.coins || 0) + coins;
-    user.lastDailyGameAt = new Date().toISOString().split('T')[0];
+    if (!stats) {
+      stats = this.statsRepository.create({ user_id: userId, xp: 0, coins: 0 });
+    }
     
-    await this.userRepository.save(user);
+    const oldLevel = Math.floor((stats.xp || 0) / 1000) + 1;
+    
+    stats.xp = (stats.xp || 0) + xp;
+    stats.coins = (stats.coins || 0) + coins;
+    
+    if (isDaily) {
+      stats.lastDailyGameAt = new Date().toISOString().split('T')[0];
+    }
+    
+    const newLevel = Math.floor(stats.xp / 1000) + 1;
+    const levelUp = newLevel > oldLevel;
+    
+    await this.statsRepository.save(stats);
+
+    return {
+      totalXp: stats.xp,
+      totalCoins: stats.coins,
+      currentLevel: newLevel,
+      levelUp,
+    };
   }
 }

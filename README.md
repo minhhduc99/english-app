@@ -17,7 +17,8 @@ We use **Polyglot Persistence**: PostgreSQL for relational data, Pinecone for Ve
 
 | Table | Fields | Note |
 |---|---|---|
-| users | id (UUID PK), username, password, fullName, email, role, xp, coins, lastDailyGameAt | **XP/Coins**: Global student progression stats. **lastDailyGameAt**: Tracks daily challenge status. |
+| users | id (UUID PK), username, password, fullName, email, role | **Normalized**: Identity and Auth only. |
+| student_stats| id, user_id (FK), xp, coins, lastDailyGameAt, streakDays | **Decoupled**: Only for Students. Tracks progression and rewards. |
 
 ### 2.2. Operations & Attendance (Partitioned)
 
@@ -128,16 +129,18 @@ Management of global resources (PDF, DOCX, etc).
   - **Sentence Master**: Interactive grammar builder using example sentences (Ready).
   - **Word Scramble**: Spelling practice with hints (Ready).
   - **Memory Match**: Vocabulary-definition pairing challenge (Ready).
+  - **Mystery Market**: Premium storefront for virtual and real-world reward redemption (Ready).
   - **Listen & Type**: Coming Soon.
 
-### 7.5. Daily Secret Challenge (Gamification)
-A mysterious, personalized high-reward challenge refreshed every 24 hours.
-
-- **Get Daily:** `GET /api/games/daily`
-  - Returns a unique, difficult challenge if not completed today.
-- **Verify Daily:** `POST /api/games/daily/verify`
-  - Awards random **XP (50-100)** and **Coins (10-30)** on success.
-  - Updates `lastDailyGameAt` to prevent duplicate claims.
+### 7.5. Gamification & Progression
+The system utilizes a prestige-based leveling engine to drive student engagement.
+- **XP Engine**: Level = `floor(XP / 1000) + 1`. Total XP is cumulative, while Level identifies academic rank.
+- **Mystery Market**: `GET /api/secret-store` (Coming Soon) - A dedicated exchange where students spend **EduCoins** on legendary avatars, XP boosts, or physical vouchers.
+- **Daily Secret Challenge**: High-reward personalized task.
+  - **Get Daily:** `GET /api/games/daily`
+  - **Verify Daily:** `POST /api/games/daily/verify`
+    - Awards random **XP (50-100)** and **Coins (10-30)**.
+    - Updates `lastDailyGameAt` in `student_stats`.
 
 ## 8. Localization (i18n)
 The system supports full real-time language switching:

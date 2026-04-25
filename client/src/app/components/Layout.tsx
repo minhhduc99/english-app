@@ -22,6 +22,10 @@ import {
   Trophy,
   Map,
   Gamepad2,
+  TrendingUp,
+  ShoppingBag,
+  Coins,
+  Star,
 } from "lucide-react";
 
 export function Layout() {
@@ -30,24 +34,31 @@ export function Layout() {
   const [studentsExpanded, setStudentsExpanded] = useState(true);
   const [materialsExpanded, setMaterialsExpanded] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { t } = useLanguage();
   
   // Use user state instead of hardcoded
   const [user, setUser] = useState({ fullName: "Loading...", role: "..." });
 
   useEffect(() => {
-    const cachedUser = localStorage.getItem("user");
-    if (!cachedUser) {
-      navigate("/login");
-      return;
-    }
-    
-    // Attempt parse
-    try {
-      setUser(JSON.parse(cachedUser));
-    } catch {
-      navigate("/login");
-    }
+    const handleStorageChange = () => {
+      const cachedUser = localStorage.getItem("user");
+      if (!cachedUser) {
+        navigate("/login");
+        return;
+      }
+      try {
+        setUser(JSON.parse(cachedUser));
+      } catch (e) {
+        console.error("Failed to parse user from storage", e);
+        navigate("/login");
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    handleStorageChange(); // Initial load
+
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [navigate]);
 
   const handleLogout = async () => {
@@ -310,18 +321,134 @@ export function Layout() {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-              <div className="w-8 h-8 bg-[#1A73E8] rounded-full flex items-center justify-center text-white text-sm font-medium">
+            <div className="flex items-center gap-3 pl-4 border-l border-gray-200 relative group">
+              <div 
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="w-10 h-10 bg-[#1A73E8] rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer hover:ring-4 hover:ring-blue-100 transition-all shadow-md group"
+              >
                 {getInitials(user.fullName)}
               </div>
-              <div className="hidden md:block">
-                <div className="text-sm font-medium text-gray-900">
+              <div className="hidden md:block cursor-pointer" onClick={() => setProfileOpen(!profileOpen)}>
+                <div className="text-sm font-bold text-gray-900 group-hover:text-[#1A73E8] transition-colors">
                   {user.fullName}
                 </div>
-                <div className="text-xs text-gray-500">
-                  {user.role}
+                <div className="flex items-center gap-2">
+                  <div className="text-xs font-medium text-gray-400 capitalize">
+                    {user.role.toLowerCase()}
+                  </div>
+                  {user.role === 'STUDENT' && (
+                    <div className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-black rounded-md border border-yellow-200 uppercase tracking-tighter">
+                      LVL {Math.floor(((user as any).xp || 0) / 1000) + 1}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Progress Detail Dropdown */}
+              {profileOpen && (
+                <>
+                  <div className="fixed inset-0 z-[60]" onClick={() => setProfileOpen(false)} />
+                  <div className="absolute top-full right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-gray-100 z-[70] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="bg-gradient-to-br from-[#1A73E8] to-[#1557b0] p-6 text-white">
+                        <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-bold">Student Profile</h4>
+                            <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-1 rounded-md">Rank #{Math.floor(Math.random() * 100) + 1}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 bg-white/20 rounded-2xl backdrop-blur-md flex items-center justify-center text-2xl font-black border border-white/30">
+                                {getInitials(user.fullName)}
+                            </div>
+                            <div>
+                                <div className="font-black text-xl leading-none mb-1">{user.fullName}</div>
+                                <div className="text-blue-100 text-sm font-medium opacity-80 underline underline-offset-4 decoration-blue-300/50">Level {Math.floor(((user as any).xp || 0) / 1000) + 1} Learner</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                        {/* XP Progress */}
+                        {user.role === 'STUDENT' && (
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                                        <TrendingUp className="w-4 h-4 text-green-500" />
+                                        XP Progress
+                                    </div>
+                                    <span className="text-xs font-black text-blue-600">
+                                        {((user as any).xp || 0) % 1000} / 1000
+                                    </span>
+                                </div>
+                                <div className="h-3 bg-gray-100 rounded-full overflow-hidden p-0.5 border border-gray-50">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000 shadow-sm"
+                                        style={{ width: `${(((user as any).xp || 0) % 1000) / 10}%` }}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-gray-400 font-bold mt-2 text-right uppercase tracking-widest">
+                                    {1000 - (((user as any).xp || 0) % 1000)} XP to LVL {Math.floor(((user as any).xp || 0) / 1000) + 2}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Economy */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                                <div className="flex items-center gap-2 text-orange-600 mb-1">
+                                    <Coins className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Balance</span>
+                                </div>
+                                <div className="text-xl font-black text-orange-900">{(user as any).coins || 0} <span className="text-xs text-orange-400">Coins</span></div>
+                            </div>
+                            <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
+                                <div className="flex items-center gap-2 text-yellow-600 mb-1">
+                                    <Star className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Total XP</span>
+                                </div>
+                                <div className="text-xl font-black text-yellow-900">{(user as any).xp || 0} <span className="text-xs text-yellow-400">XP</span></div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="pt-2 space-y-2">
+                             <Link 
+                                to="/secret-store" 
+                                onClick={() => setProfileOpen(false)}
+                                className="flex items-center justify-between p-3 bg-gray-50 hover:bg-indigo-50 rounded-xl group transition-colors"
+                             >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm text-indigo-600">
+                                        <ShoppingBag className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">Mystery Market</span>
+                                </div>
+                                <ChevronDown className="w-4 h-4 -rotate-90 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                             </Link>
+                             <Link 
+                                to="/achievements" 
+                                onClick={() => setProfileOpen(false)}
+                                className="flex items-center justify-between p-3 bg-gray-50 hover:bg-yellow-50 rounded-xl group transition-colors"
+                             >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm text-yellow-600">
+                                        <Trophy className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">My Trophies</span>
+                                </div>
+                                <ChevronDown className="w-4 h-4 -rotate-90 text-gray-400 group-hover:text-yellow-600 transition-colors" />
+                             </Link>
+                        </div>
+
+                        <button 
+                            onClick={handleLogout}
+                            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-black transition-colors shadow-lg"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Sign Out
+                        </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             <div className="pl-4 border-l border-gray-200">
               <button 

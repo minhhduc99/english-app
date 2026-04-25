@@ -18,6 +18,7 @@ import { Flashcards } from "./pages/student/Flashcards";
 import { Achievements } from "./pages/student/Achievements";
 import { FlashcardManagement } from "./pages/FlashcardManagement";
 import { EnglishGames } from "./pages/EnglishGames";
+import { SecretStore } from "./pages/SecretStore";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: Login },
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: "ai-speaking", Component: AISpeaking },
       { path: "flashcards", Component: Flashcards },
       { path: "english-games", Component: EnglishGames },
+      { path: "secret-store", Component: SecretStore },
       { path: "achievements", Component: Achievements },
     ],
   },
