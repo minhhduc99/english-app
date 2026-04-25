@@ -17,6 +17,21 @@ export class GamesController {
     return this.gamesService.verifyScramble(body.id, body.answer);
   }
 
+  @Get('sentence')
+  async getSentence(@Query('count') count: number) {
+    return this.gamesService.generateSentence(count || 5);
+  }
+
+  @Post('sentence/verify')
+  async verifySentence(@Body() body: { id: string; answer: string }) {
+    return this.gamesService.verifySentence(body.id, body.answer);
+  }
+
+  @Get('memory')
+  async getMemoryMatch(@Query('count') count: number) {
+    return this.gamesService.generateMemoryMatch(count || 6);
+  }
+
   @Get('daily')
   async getDailyChallenge(@Request() req) {
     return this.gamesService.generateDailyChallenge(req.user.id);

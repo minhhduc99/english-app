@@ -36,4 +36,8 @@ export class VocabulariesService {
   async remove(id: string) {
     return await this.vocabularyRepository.delete(id);
   }
+
+  async countAll() {
+    return await this.vocabularyRepository.count();
+  }
 }

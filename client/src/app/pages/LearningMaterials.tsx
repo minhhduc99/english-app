@@ -40,6 +40,7 @@ export function LearningMaterials() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadCategory, setUploadCategory] = useState("GENERAL");
+  const [vocabCount, setVocabCount] = useState(0);
 
   const fetchMaterials = async () => {
     try {
@@ -59,17 +60,34 @@ export function LearningMaterials() {
     }
   };
 
+  const fetchVocabCount = async () => {
+    try {
+      const res = await fetch("/api/vocabularies", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVocabCount(data.length);
+      }
+    } catch (error) {
+      console.error("Failed to fetch vocabularies:", error);
+    }
+  };
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     setCurrentUser(user);
     fetchMaterials();
+    fetchVocabCount();
   }, []);
 
   const stats = [
     { label: t("materials.total_materials"), value: materials.length.toString(), icon: FileText, color: "bg-blue-50 text-blue-600" },
     { label: t("materials.pdf_images"), value: materials.filter(m => m.category === 'GENERAL' || !m.category).length.toString(), icon: ImageIcon, color: "bg-green-50 text-green-600" },
-    { label: t("materials.flashcards"), value: materials.filter(m => m.category === 'FLASHCARD').length.toString(), icon: CreditCard, color: "bg-purple-50 text-purple-600" },
-    { label: t("materials.games"), value: materials.filter(m => m.category === 'GAME').length.toString(), icon: Gamepad2, color: "bg-orange-50 text-orange-600" },
+    { label: t("materials.flashcards"), value: vocabCount.toString(), icon: CreditCard, color: "bg-purple-50 text-purple-600" },
+    { label: t("materials.games"), value: (materials.filter(m => m.category === 'GAME').length + 3).toString(), icon: Gamepad2, color: "bg-orange-50 text-orange-600" },
   ];
 
   const handleSaveUpload = async () => {

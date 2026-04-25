@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Gamepad2, Brain, Search, LayoutTemplate, BrainCircuit, MessageSquare, X, Sparkles, Trophy, Coins, Star } from "lucide-react";
+import { Gamepad2, Brain, Search, BookOpen, MessageSquare, X, Sparkles, Trophy, Coins, Star, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -18,19 +18,21 @@ export function EnglishGames() {
     },
     {
       title: t("games.sentence_title"),
-      icon: LayoutTemplate,
+      icon: BookOpen,
       difficulty: "Medium",
       description: t("games.sentence_desc"),
       color: "bg-orange-50 text-orange-600",
       borderColor: "hover:border-orange-200",
+      key: 'sentence'
     },
     {
       title: t("games.memory_title"),
-      icon: BrainCircuit,
+      icon: Brain,
       difficulty: "Medium",
       description: t("games.memory_desc"),
       color: "bg-green-50 text-green-600",
       borderColor: "hover:border-green-200",
+      key: 'memory'
     },
     {
       title: t("games.listen_title"),
@@ -48,6 +50,16 @@ export function EnglishGames() {
   const [userInput, setUserInput] = useState("");
   const [gameFeedback, setGameFeedback] = useState<{ success?: boolean; message?: string; rewards?: { xp: number; coins: number } } | null>(null);
   const [dailyStatus, setDailyStatus] = useState<any>(null);
+
+  // Sentence Master State
+  const [sentenceItems, setSentenceItems] = useState<any[]>([]);
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
+
+  // Memory Match State
+  const [memoryCards, setMemoryCards] = useState<any[]>([]);
+  const [flippedCards, setFlippedCards] = useState<number[]>([]);
+  const [matchedPairs, setMatchedPairs] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     fetchDailyStatus();
@@ -92,11 +104,54 @@ export function EnglishGames() {
     setGameFeedback(null);
   };
 
+  const startSentenceMaster = async () => {
+    try {
+      const res = await fetch("/api/games/sentence?count=5", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSentenceItems(data);
+        setPlayingGame("sentence");
+        setCurrentIndex(0);
+        setSelectedWords([]);
+        setGameFeedback(null);
+      }
+    } catch (error) {
+      toast.error("Failed to start game");
+    }
+  };
+
+  const startMemoryMatch = async () => {
+    try {
+      const res = await fetch("/api/games/memory?count=6", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMemoryCards(data);
+        setPlayingGame("memory");
+        setMatchedPairs([]);
+        setFlippedCards([]);
+      }
+    } catch (error) {
+      toast.error("Failed to start game");
+    }
+  };
+
   const handleVerify = async () => {
-    if (!userInput) return;
     const isDaily = playingGame === "daily";
-    const endpoint = isDaily ? "/api/games/daily/verify" : "/api/games/scramble/verify";
-    const body = isDaily ? { id: dailyStatus.id, answer: userInput } : { id: scrambleItems[currentIndex].id, answer: userInput };
+    const isSentence = playingGame === "sentence";
+    
+    let answer = userInput;
+    if (isSentence) {
+      answer = selectedWords.join(" ");
+    }
+    
+    if (!answer) return;
+
+    const endpoint = isDaily ? "/api/games/daily/verify" : isSentence ? "/api/games/sentence/verify" : "/api/games/scramble/verify";
+    const body = isDaily ? { id: dailyStatus.id, answer } : isSentence ? { id: sentenceItems[currentIndex].id, answer } : { id: scrambleItems[currentIndex].id, answer };
 
     try {
       const res = await fetch(endpoint, {
@@ -116,9 +171,11 @@ export function EnglishGames() {
             setDailyStatus({ ...dailyStatus, completed: true });
           } else {
             setTimeout(() => {
-              if (currentIndex < scrambleItems.length - 1) {
+              const currentList = isSentence ? sentenceItems : scrambleItems;
+              if (currentIndex < currentList.length - 1) {
                 setCurrentIndex(currentIndex + 1);
                 setUserInput("");
+                setSelectedWords([]);
                 setGameFeedback(null);
               } else {
                 toast.success(t("games.congrats"));
@@ -128,10 +185,45 @@ export function EnglishGames() {
           }
         } else {
           toast.error(t("games.wrong"));
+          if (isSentence) {
+            setSelectedWords([]); // Reset on wrong
+          }
         }
       }
     } catch (error) {
       toast.error("Error verifying answer");
+    }
+  };
+
+  const handleCardClick = (index: number) => {
+    if (isProcessing || flippedCards.includes(index) || matchedPairs.includes(memoryCards[index].vocabId)) return;
+
+    const newFlipped = [...flippedCards, index];
+    setFlippedCards(newFlipped);
+
+    if (newFlipped.length === 2) {
+      setIsProcessing(true);
+      const firstCard = memoryCards[newFlipped[0]];
+      const secondCard = memoryCards[newFlipped[1]];
+
+      if (firstCard.vocabId === secondCard.vocabId) {
+        setMatchedPairs([...matchedPairs, firstCard.vocabId]);
+        setFlippedCards([]);
+        setIsProcessing(false);
+        toast.success("Match found!");
+        
+        if (matchedPairs.length + 1 === memoryCards.length / 2) {
+          setTimeout(() => {
+            toast.success(t("games.congrats"));
+            setPlayingGame(null);
+          }, 1000);
+        }
+      } else {
+        setTimeout(() => {
+          setFlippedCards([]);
+          setIsProcessing(false);
+        }, 1000);
+      }
     }
   };
 
@@ -260,6 +352,127 @@ export function EnglishGames() {
     );
   }
 
+  if (playingGame === "sentence" && sentenceItems.length > 0) {
+    const current = sentenceItems[currentIndex];
+    return (
+      <div className="p-6 max-w-3xl mx-auto space-y-8 animate-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between">
+          <button onClick={() => setPlayingGame(null)} className="text-gray-500 hover:text-gray-700 flex items-center gap-2">
+            <X className="w-5 h-5" /> {t("games.back")}
+          </button>
+          <div className="text-sm font-bold text-gray-400">
+            {currentIndex + 1} / {sentenceItems.length}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl border-2 border-orange-100 p-10 shadow-xl shadow-orange-50/50">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-black text-gray-900 mb-2">{t("games.sentence_title")}</h2>
+            <div className="inline-block px-4 py-1 bg-orange-100 text-orange-600 rounded-full text-xs font-bold uppercase tracking-widest">
+              {current.hint}
+            </div>
+          </div>
+
+          <div className="min-h-[120px] p-6 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 mb-8 flex flex-wrap gap-2 items-center justify-center">
+            {selectedWords.length > 0 ? selectedWords.map((word, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedWords(selectedWords.filter((_, idx) => idx !== i))}
+                className="px-4 py-2 bg-white border-2 border-orange-200 text-orange-700 font-bold rounded-xl hover:bg-orange-50 transition-all shadow-sm"
+              >
+                {word}
+              </button>
+            )) : (
+              <p className="text-gray-400 italic">Click words below to build the sentence...</p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 justify-center mb-10">
+            {current.scrambledWords.map((word: string, i: number) => {
+              const instancesInScrambled = current.scrambledWords.filter((w: string) => w === word).length;
+              const instancesInSelected = selectedWords.filter((w: string) => w === word).length;
+              const isUsed = instancesInSelected >= instancesInScrambled;
+              
+              return (
+                <button
+                  key={i}
+                  disabled={isUsed}
+                  onClick={() => setSelectedWords([...selectedWords, word])}
+                  className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                    isUsed 
+                    ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
+                    : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-orange-300 hover:scale-105 active:scale-95 shadow-sm'
+                  }`}
+                >
+                  {word}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              onClick={() => setSelectedWords([])}
+              className="flex-1 py-4 border-2 border-gray-100 text-gray-500 rounded-2xl font-bold hover:bg-gray-50 transition-all"
+            >
+              Reset
+            </button>
+            <button
+              onClick={handleVerify}
+              disabled={selectedWords.length === 0}
+              className="flex-[2] py-4 bg-orange-500 text-white rounded-2xl font-bold text-lg hover:bg-orange-600 transition-all shadow-lg shadow-orange-100 disabled:opacity-50"
+            >
+              {t("games.verify_btn")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (playingGame === "memory" && memoryCards.length > 0) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto space-y-8 animate-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between">
+          <button onClick={() => setPlayingGame(null)} className="text-gray-500 hover:text-gray-700 flex items-center gap-2">
+            <X className="w-5 h-5" /> {t("games.back")}
+          </button>
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-bold text-gray-400">
+              Matches: {matchedPairs.length} / {memoryCards.length / 2}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+          {memoryCards.map((card, index) => {
+            const isFlipped = flippedCards.includes(index);
+            const isMatched = matchedPairs.includes(card.vocabId);
+            
+            return (
+              <div
+                key={index}
+                onClick={() => handleCardClick(index)}
+                className={`aspect-square cursor-pointer transition-all duration-300 ${isMatched ? 'opacity-0 pointer-events-none' : ''}`}
+              >
+                <div className={`relative w-full h-full text-center transition-all duration-500 ${isFlipped ? '[transform:rotateY(180deg)]' : ''} [transform-style:preserve-3d]`}>
+                  <div className="absolute w-full h-full bg-green-500 rounded-2xl flex items-center justify-center border-4 border-white shadow-lg [backface-visibility:hidden]">
+                    <Brain className="w-8 h-8 text-white/50" />
+                  </div>
+                  <div className="absolute w-full h-full bg-white rounded-2xl flex items-center justify-center p-4 border-4 border-green-100 shadow-md [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                    <p className={`text-xs md:text-sm font-bold leading-tight ${card.type === 'WORD' ? 'text-green-700 text-lg' : 'text-gray-600'}`}>
+                      {card.content}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
       <div className="text-center max-w-2xl mx-auto">
@@ -335,11 +548,15 @@ export function EnglishGames() {
           <div
             key={index}
             className={`bg-white rounded-2xl border border-gray-100 p-8 shadow-sm transition-all duration-300 border-l-4 ${game.borderColor.replace('hover:', '')} cursor-pointer hover:shadow-xl group relative overflow-hidden`}
-            onClick={() => game.key === 'scramble' && startScramble()}
+            onClick={() => {
+              if (game.key === 'scramble') startScramble();
+              else if (game.key === 'sentence') startSentenceMaster();
+              else if (game.key === 'memory') startMemoryMatch();
+            }}
           >
             <div className="flex items-start justify-between mb-6">
               <div className={`w-14 h-14 ${game.color} rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500`}>
-                <game.icon className="w-7 h-7" />
+                {game.icon && <game.icon className="w-7 h-7" />}
               </div>
               <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${game.color} border border-gray-50`}>
                 {game.difficulty}
@@ -350,13 +567,18 @@ export function EnglishGames() {
               {game.description}
             </p>
             <button
-              className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${game.key === 'scramble'
+              className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${game.key 
                   ? 'bg-[#1A73E8] text-white hover:bg-[#1557B0] shadow-lg shadow-blue-100'
                   : 'bg-gray-50 text-gray-400 cursor-not-allowed'
                 }`}
-              onClick={(e) => { e.stopPropagation(); game.key === 'scramble' && startScramble(); }}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if (game.key === 'scramble') startScramble();
+                else if (game.key === 'sentence') startSentenceMaster();
+                else if (game.key === 'memory') startMemoryMatch();
+              }}
             >
-              {game.key === 'scramble' ? t("games.play_now") : t("games.coming_soon")}
+              {game.key ? t("games.play_now") : t("games.coming_soon")}
             </button>
           </div>
         ))}
@@ -365,7 +587,7 @@ export function EnglishGames() {
       <div className="bg-gradient-to-br from-[#111827] to-[#374151] rounded-[2.5rem] p-10 text-white shadow-2xl shadow-gray-200 overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
         <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-          <BrainCircuit className="w-6 h-6 text-blue-400" />
+          <Brain className="w-6 h-6 text-blue-400" />
           {t("games.roadmap_title")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">

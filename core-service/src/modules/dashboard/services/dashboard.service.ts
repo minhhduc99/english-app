@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MaterialsService } from '../../materials/materials.service';
+import { VocabulariesService } from '../../vocabularies/vocabularies.service';
 
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
 
-  constructor(private readonly materialsService: MaterialsService) {}
+  constructor(
+    private readonly materialsService: MaterialsService,
+    private readonly vocabulariesService: VocabulariesService,
+  ) {}
 
   /**
    * Fetches the core overview statistics for the administrative dashboard.
@@ -42,6 +46,8 @@ export class DashboardService {
     this.logger.log(`Fetching Teacher Dashboard Statistics for user: ${teacherId}`);
     
     const materialCounts = await this.materialsService.countByTeacher(teacherId);
+    const globalCounts = await this.materialsService.countAll();
+    const vocabCount = await this.vocabulariesService.countAll();
     
     return {
       materials: {
@@ -50,8 +56,10 @@ export class DashboardService {
         types: materialCounts.types,
         categories: materialCounts.categories,
       },
-      // In a real implementation, we could add more teacher-specific stats here
-      // like active classes, student performance in their classes, etc.
+      global: {
+        flashcards: vocabCount,
+        games: globalCounts.categories.find(c => c.category === 'GAME')?.count || 0,
+      }
     };
   }
 }

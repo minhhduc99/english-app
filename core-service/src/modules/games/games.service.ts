@@ -24,6 +24,65 @@ export class GamesService {
     }));
   }
 
+  async generateSentence(count: number = 5) {
+    const allVocabs = await this.vocabulariesService.findAll();
+    // Filter out items without example sentences and shuffle
+    const pool = allVocabs.filter(v => v.example && v.example.length > 10);
+    const shuffled = pool.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, count);
+
+    return selected.map(vocab => ({
+      id: vocab.id,
+      scrambledWords: this.scrambleWords(vocab.example),
+      correctSentence: vocab.example,
+      hint: vocab.word,
+    }));
+  }
+
+  async generateMemoryMatch(count: number = 6) {
+    const allVocabs = await this.vocabulariesService.findAll();
+    // Shuffle and pick words
+    const shuffled = allVocabs.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, count);
+
+    const cards = [];
+    selected.forEach(vocab => {
+      // Create word card
+      cards.push({
+        id: `word-${vocab.id}`,
+        vocabId: vocab.id,
+        content: vocab.word,
+        type: 'WORD',
+      });
+      // Create definition card
+      cards.push({
+        id: `def-${vocab.id}`,
+        vocabId: vocab.id,
+        content: vocab.definition,
+        type: 'DEFINITION',
+      });
+    });
+
+    // Final shuffle of the pair cards
+    return cards.sort(() => 0.5 - Math.random());
+  }
+
+  private scrambleWords(sentence: string): string[] {
+    const words = sentence.split(' ');
+    // Fisher-Yates shuffle
+    for (let i = words.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [words[i], words[j]] = [words[j], words[i]];
+    }
+    
+    // Ensure it's actually scrambled (not same as original)
+    if (words.join(' ') === sentence && words.length > 1) {
+      return this.scrambleWords(sentence);
+    }
+    
+    return words;
+  }
+
   async generateDailyChallenge(userId: string) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException('User not found');
@@ -109,6 +168,24 @@ export class GamesService {
     return {
       success: isCorrect,
       correctWord: isCorrect ? item.word : null,
+      message: isCorrect ? 'Correct!' : 'Try again!',
+    };
+  }
+
+  async verifySentence(id: string, answer: string) {
+    const vocab = await this.vocabulariesService.findAll();
+    const item = vocab.find(v => v.id === id);
+    
+    if (!item) return { success: false, message: 'Sentence not found' };
+
+    // Basic normalization: lowercase and trim
+    const normalizedAnswer = answer.toLowerCase().trim().replace(/[.,!?;]$/, '');
+    const normalizedCorrect = item.example.toLowerCase().trim().replace(/[.,!?;]$/, '');
+
+    const isCorrect = normalizedAnswer === normalizedCorrect;
+    return {
+      success: isCorrect,
+      correctSentence: isCorrect ? item.example : null,
       message: isCorrect ? 'Correct!' : 'Try again!',
     };
   }

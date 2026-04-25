@@ -18,6 +18,8 @@ import {
   TrendingUp,
   GraduationCap,
   CheckCircle,
+  CreditCard,
+  Gamepad2,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { translateSchedule } from "../../utils/schedule";
@@ -45,7 +47,11 @@ export function Dashboard() {
       thisMonth: 0, 
       types: [] as { type: string; count: number }[],
       categories: [] as { category: string; count: number }[]
-    } 
+    },
+    global: {
+      flashcards: 0,
+      games: 0
+    }
   });
 
   useEffect(() => {
@@ -228,9 +234,10 @@ export function Dashboard() {
     }) : [
       { type: t("menu.learning_materials"), count: 0, icon: FolderOpen, color: "bg-gray-50 text-gray-600" }
     ],
-    // Flashcard and Game stats from categories
-    flashcards: stats.materials.categories.find(c => c.category === 'FLASHCARD')?.count || 0,
-    games: stats.materials.categories.find(c => c.category === 'GAME')?.count || 0,
+    // Flashcard and Game stats from global API summary
+    flashcards: (stats as any).global?.flashcards || 0,
+    games: ((stats as any).global?.games || 0) + 3,
+    pdfImages: stats.materials.categories.find((c) => c.category === "GENERAL" || !c.category)?.count || 0,
   };
 
   // Today's Absent Students
@@ -534,22 +541,39 @@ export function Dashboard() {
             <p className="text-sm opacity-90">+{materialStats.thisMonth} {language === 'en' ? 'this month' : 'tháng này'}</p>
           </div>
 
-          <div className="space-y-3">
-            {materialStats.byType.map((type, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${type.color} rounded-lg flex items-center justify-center`}>
-                    <type.icon className="w-5 h-5" />
-                  </div>
-                  <span className="font-medium text-gray-900">{type.type}</span>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-medium text-purple-900">{t("materials.flashcards")}</span>
                 </div>
-                <span className="text-lg font-semibold text-gray-900">{type.count}</span>
+                <span className="text-lg font-bold text-purple-900">{materialStats.flashcards}</span>
               </div>
-            ))}
-          </div>
+              <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gamepad2 className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm font-medium text-orange-900">{t("materials.games")}</span>
+                </div>
+                <span className="text-lg font-bold text-orange-900">{materialStats.games}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {materialStats.byType.map((type, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 ${type.color} rounded-lg flex items-center justify-center`}>
+                      <type.icon className="w-5 h-5" />
+                    </div>
+                    <span className="font-medium text-gray-900">{type.type}</span>
+                  </div>
+                  <span className="text-lg font-semibold text-gray-900">{type.count}</span>
+                </div>
+              ))}
+            </div>
         </div>
       </div>
 

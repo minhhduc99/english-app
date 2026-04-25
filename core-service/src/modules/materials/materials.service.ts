@@ -126,4 +126,42 @@ export class MaterialsService {
       })),
     };
   }
+
+  async countAll() {
+    const total = await this.materialRepository.count();
+    
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const thisMonth = await this.materialRepository.createQueryBuilder('material')
+      .where('material.createdAt >= :firstDayOfMonth', { firstDayOfMonth })
+      .getCount();
+
+    // Get breakdown by type
+    const typeBreakdown = await this.materialRepository.createQueryBuilder('material')
+      .select('material.fileType', 'type')
+      .addSelect('COUNT(material.id)', 'count')
+      .groupBy('material.fileType')
+      .getRawMany();
+
+    // Get breakdown by category
+    const categoryBreakdown = await this.materialRepository.createQueryBuilder('material')
+      .select('material.category', 'category')
+      .addSelect('COUNT(material.id)', 'count')
+      .groupBy('material.category')
+      .getRawMany();
+
+    return {
+      total,
+      thisMonth,
+      types: typeBreakdown.map(item => ({
+        type: item.type,
+        count: parseInt(item.count, 10),
+      })),
+      categories: categoryBreakdown.map(item => ({
+        category: item.category,
+        count: parseInt(item.count, 10),
+      })),
+    };
+  }
 }

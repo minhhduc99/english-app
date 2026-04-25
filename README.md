@@ -125,9 +125,10 @@ Management of global resources (PDF, DOCX, etc).
 - **Word Scramble:** `GET /api/games/scramble?count=5`
 - **Verify Answer:** `POST /api/games/scramble/verify`
 - **Available Games**: 
-  - **Sentence Master**: Non-violent grammar builder (Medium).
-  - **Word Scramble**: Spelling practice (Easy).
-  - **Memory Match**: Definition pairing.
+  - **Sentence Master**: Interactive grammar builder using example sentences (Ready).
+  - **Word Scramble**: Spelling practice with hints (Ready).
+  - **Memory Match**: Vocabulary-definition pairing challenge (Ready).
+  - **Listen & Type**: Coming Soon.
 
 ### 7.5. Daily Secret Challenge (Gamification)
 A mysterious, personalized high-reward challenge refreshed every 24 hours.
