@@ -11,9 +11,10 @@ interface AssignStudentsModalProps {
   courseName?: string;
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function AssignStudentsModal({ courseId, courseName, isOpen, onClose }: AssignStudentsModalProps) {
+export function AssignStudentsModal({ courseId, courseName, isOpen, onClose, onSuccess }: AssignStudentsModalProps) {
   const [availableStudents, setAvailableStudents] = useState<Student[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [originalIds, setOriginalIds] = useState<string[]>([]);
@@ -88,6 +89,7 @@ export function AssignStudentsModal({ courseId, courseName, isOpen, onClose }: A
         body: JSON.stringify({ studentIds: selectedIds }),
       });
       setOriginalIds(selectedIds);
+      if (onSuccess) onSuccess();
       onClose();
     } catch {
       alert("Error assigning students. Please try again.");

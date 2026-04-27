@@ -46,6 +46,21 @@ export class LessonsController {
     return await this.lessonsService.update(id, data);
   }
 
+  @Get(':id/content')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER, Role.STUDENT)
+  async getLessonContent(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.lessonsService.getLessonContent(id);
+  }
+
+  @Post(':id/materials')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  async linkMaterials(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('materialIds') materialIds: string[],
+  ) {
+    return await this.lessonsService.linkMaterials(id, materialIds);
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
   async remove(@Param('id', ParseUUIDPipe) id: string) {

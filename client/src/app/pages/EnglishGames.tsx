@@ -694,30 +694,7 @@ export function EnglishGames() {
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-[#111827] to-[#374151] rounded-[2.5rem] p-10 text-white shadow-2xl shadow-gray-200 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-          <Brain className="w-6 h-6 text-blue-400" />
-          {t("games.roadmap_title")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-            <div className="text-3xl font-black mb-2 opacity-20">01</div>
-            <h4 className="font-bold mb-1 text-blue-300">{t("games.roadmap_step1_title")}</h4>
-            <p className="text-xs font-medium text-gray-400 leading-relaxed">{t("games.roadmap_step1_desc")}</p>
-          </div>
-          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-            <div className="text-3xl font-black mb-2 opacity-20">02</div>
-            <h4 className="font-bold mb-1 text-pink-300">{t("games.roadmap_step2_title")}</h4>
-            <p className="text-xs font-medium text-gray-400 leading-relaxed">{t("games.roadmap_step2_desc")}</p>
-          </div>
-          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-            <div className="text-3xl font-black mb-2 opacity-20">03</div>
-            <h4 className="font-bold mb-1 text-yellow-300">{t("games.roadmap_step3_title")}</h4>
-            <p className="text-xs font-medium text-gray-400 leading-relaxed">{t("games.roadmap_step3_desc")}</p>
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 }

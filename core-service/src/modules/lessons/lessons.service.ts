@@ -26,10 +26,15 @@ export class LessonsService {
   }
 
   async findAllByCourse(courseId: string) {
-    return await this.lessonRepository.find({
-      where: { courseId },
-      order: { order: 'ASC' },
-    });
+    return await this.lessonRepository.manager.query(`
+      SELECT 
+        l.*,
+        (SELECT COUNT(*) FROM vocabularies v WHERE v."lessonId" = l.id AND v."isDeleted" = false) as "vocabularyCount",
+        (SELECT COUNT(*) FROM materials m WHERE m."lessonId" = l.id AND m."isDeleted" = false) as "materialCount"
+      FROM lessons l
+      WHERE l."courseId" = $1 AND l."isDeleted" = false
+      ORDER BY l."order" ASC
+    `, [courseId]);
   }
 
   async update(id: string, data: Partial<Lesson>) {
@@ -46,6 +51,38 @@ export class LessonsService {
     await this.lessonRepository.save(lesson);
     await this.lessonRepository.softRemove(lesson);
     return { message: 'Lesson deleted successfully' };
+  }
+
+  async getLessonContent(lessonId: string) {
+    const lesson = await this.lessonRepository.findOne({ where: { id: lessonId } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+
+    // Fetch vocabularies (assuming we can use raw query or inject repository)
+    const vocabularies = await this.lessonRepository.manager.query(`
+      SELECT * FROM vocabularies WHERE "lessonId" = $1 AND "isDeleted" = false
+    `, [lessonId]);
+
+    // Fetch materials
+    const materials = await this.lessonRepository.manager.query(`
+      SELECT * FROM materials WHERE "lessonId" = $1 AND "isDeleted" = false
+    `, [lessonId]);
+
+    return {
+      lesson,
+      vocabularies,
+      materials
+    };
+  }
+
+  async linkMaterials(lessonId: string, materialIds: string[]) {
+    const lesson = await this.lessonRepository.findOne({ where: { id: lessonId } });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+
+    await this.lessonRepository.manager.query(`
+      UPDATE materials SET "lessonId" = $1 WHERE id = ANY($2)
+    `, [lessonId, materialIds]);
+
+    return { message: 'Materials linked to lesson successfully' };
   }
 
   async uploadLessonMaterial(lessonId: string, file: Express.Multer.File) {

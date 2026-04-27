@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common'; // reload trigger
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
@@ -14,6 +14,7 @@ import { CoursesModule } from './modules/courses/courses.module';
 import { MaterialsModule } from './modules/materials/materials.module';
 import { VocabulariesModule } from './modules/vocabularies/vocabularies.module';
 import { GamesModule } from './modules/games/games.module';
+import { TestsModule } from './modules/tests/tests.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { GamesModule } from './modules/games/games.module';
     WebhooksModule,
     VocabulariesModule,
     GamesModule,
+    TestsModule,
   ],
 })
 export class AppModule {}

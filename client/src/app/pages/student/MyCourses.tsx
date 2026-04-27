@@ -16,6 +16,8 @@ interface Course {
   description?: string;
   status: string;
   teacherNames?: string;
+  totalLessons?: number;
+  completedLessons?: number;
 }
 
 export function MyCourses() {
@@ -90,10 +92,12 @@ export function MyCourses() {
           </div>
         ) : (
           courses.map((course, index) => {
+            const total = course.totalLessons || 0;
+            const completed = course.completedLessons || 0;
+            const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const completedLessons = completed;
+            const totalLessons = total;
             const color = getCourseColor(course.name, index);
-            // Mock some data that isn't in DB yet to keep UI beautiful
-            const progress = course.status === "COMPLETED" ? 100 : (15 + (index * 20)) % 100;
-            const completedLessons = Math.floor((progress / 100) * 30);
             
             return (
               <div
@@ -135,7 +139,7 @@ export function MyCourses() {
                           {course.name} - {levelLabel(course.level)}
                         </h3>
                         <p className="text-sm text-[#6B7280]">
-                          <span className="font-medium text-gray-900">{t("Instructor")}:</span> {course.teacherNames || t("dashboard.ms_thuthao")}
+                          <span className="font-medium text-gray-900">{t("Instructor")}:</span> {course.teacherNames || "-"}
                         </p>
                       </div>
                       <span
@@ -155,7 +159,7 @@ export function MyCourses() {
                     <div className="mb-4 mt-4">
                       <div className="flex items-center justify-between text-sm text-[#6B7280] mb-2">
                         <span>
-                          {completedLessons} / 30 {t("lessons completed")}
+                          {completedLessons} / {totalLessons} {t("lessons completed")}
                         </span>
                         <span className="font-bold text-gray-900">{progress}%</span>
                       </div>

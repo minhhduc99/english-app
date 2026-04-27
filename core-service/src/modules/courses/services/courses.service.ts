@@ -134,7 +134,17 @@ export class CoursesService {
           FROM course_teachers ct
           JOIN users u ON ct.user_id = u.id
           WHERE ct.course_id = c.id
-        ) as "teacherNames"
+        ) as "teacherNames",
+        (
+          SELECT COUNT(*)::int 
+          FROM lessons l 
+          WHERE l."courseId" = c.id AND l."deletedAt" IS NULL
+        ) as "totalLessons",
+        (
+          SELECT COUNT(DISTINCT ca.date)::int
+          FROM course_attendance ca
+          WHERE ca.course_id = c.id
+        ) as "completedLessons"
       FROM courses c
       INNER JOIN course_students cs ON cs.course_id = c.id AND cs.user_id = $1
       WHERE c.status = 'ACTIVE' AND c.deleted_at IS NULL ${searchQuery}
@@ -266,7 +276,7 @@ export class CoursesService {
         UPPER(SUBSTR(u."fullName", 1, 1)) AS avatar
       FROM course_students cs
       JOIN users u ON cs.user_id = u.id
-      WHERE cs.course_id = $1 AND cs.status = 'ACTIVE' AND u.deleted_at IS NULL
+      WHERE cs.course_id = $1 AND cs.status = 'ACTIVE' AND u."deletedAt" IS NULL
       ORDER BY u."fullName"
     `, [courseId]);
   }
@@ -278,7 +288,7 @@ export class CoursesService {
     return this.dataSource.query(`
       SELECT id, "fullName"
       FROM users
-      WHERE role::text = 'STUDENT' AND deleted_at IS NULL
+      WHERE role::text = 'STUDENT' AND "deletedAt" IS NULL
       ORDER BY "fullName"
     `);
   }
@@ -329,7 +339,7 @@ export class CoursesService {
         u.email
       FROM course_teachers ct
       JOIN users u ON ct.user_id = u.id
-      WHERE ct.course_id = $1 AND ct.status = 'ACTIVE' AND u.deleted_at IS NULL
+      WHERE ct.course_id = $1 AND ct.status = 'ACTIVE' AND u."deletedAt" IS NULL
       ORDER BY u."fullName"
     `, [courseId]);
   }
@@ -341,7 +351,7 @@ export class CoursesService {
     return this.dataSource.query(`
       SELECT id, "fullName"
       FROM users
-      WHERE role::text = 'TEACHER' AND deleted_at IS NULL
+      WHERE role::text = 'TEACHER' AND "deletedAt" IS NULL
       ORDER BY "fullName"
     `);
   }
@@ -390,7 +400,7 @@ export class CoursesService {
         m."createdAt"
       FROM course_materials cm
       JOIN materials m ON cm.material_id = m.id
-      WHERE cm.course_id = $1 AND m.deleted_at IS NULL
+      WHERE cm.course_id = $1 AND m."deletedAt" IS NULL
       ORDER BY m."createdAt" DESC
     `, [courseId]);
 

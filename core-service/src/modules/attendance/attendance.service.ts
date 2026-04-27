@@ -87,7 +87,7 @@ export class AttendanceService {
       `SELECT cs.user_id AS student_id, u."fullName" AS full_name
        FROM course_students cs
        JOIN users u ON cs.user_id = u.id
-       WHERE cs.course_id = $1 AND cs.status = 'ACTIVE' AND u.deleted_at IS NULL
+       WHERE cs.course_id = $1 AND cs.status = 'ACTIVE' AND u."deletedAt" IS NULL
        ORDER BY u."fullName"`,
       [courseId],
     );
@@ -175,7 +175,7 @@ export class AttendanceService {
       SELECT TO_CHAR(ca.date, 'YYYY-MM-DD') as date, ca.status, u.id as student_id, u."fullName" as full_name
       FROM course_attendance ca
       JOIN users u ON ca.student_id = u.id
-      WHERE ca.course_id = $1 AND u.deleted_at IS NULL
+      WHERE ca.course_id = $1 AND u."deletedAt" IS NULL
     `, [courseId]);
 
     const studentMap = new Map();

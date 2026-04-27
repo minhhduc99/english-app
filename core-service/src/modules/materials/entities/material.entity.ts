@@ -24,12 +24,19 @@ export class Material {
   @Column({ nullable: true })
   courseId: string;
 
+  @Column({ nullable: true })
+  lessonId: string;
+
   @Column()
   uploadedById: string;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'uploadedById' })
   uploadedBy: User;
+
+  @ManyToOne('Lesson', { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'lessonId' })
+  lesson: any;
 
   @Column({ default: 'GENERAL' })
   category: string; // GENERAL, FLASHCARD, GAME

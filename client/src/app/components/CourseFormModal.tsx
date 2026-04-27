@@ -22,6 +22,7 @@ interface CourseFormModalProps {
   course?: CourseFormData | null;
   mode: "add" | "edit";
   loading?: boolean;
+  hasTeacher?: boolean;
 }
 
 const LEVELS = [
@@ -58,6 +59,7 @@ export function CourseFormModal({
   course,
   mode,
   loading,
+  hasTeacher = false,
 }: CourseFormModalProps) {
   const { t, language } = useLanguage();
   const [formData, setFormData] = useState<CourseFormData>(emptyForm);
@@ -135,6 +137,9 @@ export function CourseFormModal({
     if (!formData.studySchedule.trim()) newErrors.studySchedule = t("course.error_schedule_required");
     if (formData.maxAttendants < 1 || formData.maxAttendants > 500) {
       newErrors.maxAttendants = t("course.error_attendants_range");
+    }
+    if (formData.status === "ACTIVE" && !hasTeacher) {
+      newErrors.status = t("course.error_teacher_required_for_active");
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -348,6 +353,7 @@ export function CourseFormModal({
                     </option>
                   ))}
                 </select>
+                {errors.status && <p className={errorClass}>{errors.status}</p>}
               </div>
             )}
 

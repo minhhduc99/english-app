@@ -12,7 +12,9 @@ import {
   Users,
   ArrowLeft,
   GraduationCap,
-  FolderOpen
+  FolderOpen,
+  Target,
+  HelpCircle
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { toast } from "sonner";
@@ -21,6 +23,9 @@ import { AssignStudentsModal } from "../components/manager/AssignStudentsModal";
 import { AssignTeachersModal } from "../components/manager/AssignTeachersModal";
 import { SelectMaterialModal } from "../components/manager/SelectMaterialModal";
 import { LessonFormModal } from "../components/LessonFormModal";
+import { LessonContentModal } from "../components/LessonContentModal";
+import { TestManagementModal } from "../components/TestManagementModal";
+import { TestTakingModal } from "../components/TestTakingModal";
 import { translateSchedule } from "../utils/schedule";
 
 interface Course {
@@ -42,6 +47,8 @@ interface LearningPathStep {
   title: string;
   description: string;
   order: number;
+  vocabularyCount: number;
+  materialCount: number;
 }
 
 interface LearningMaterial {
@@ -57,6 +64,7 @@ export function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null);
   const [materials, setMaterials] = useState<LearningMaterial[]>([]);
   const [learningPath, setLearningPath] = useState<LearningPathStep[]>([]);
+  const [tests, setTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState("");
 
@@ -66,18 +74,28 @@ export function CourseDetail() {
   const [isAssignTeachersOpen, setIsAssignTeachersOpen] = useState(false);
   const [isSelectMaterialOpen, setIsSelectMaterialOpen] = useState(false);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  const [isLessonContentOpen, setIsLessonContentOpen] = useState(false);
+  const [isTestManagementOpen, setIsTestManagementOpen] = useState(false);
+  const [isTestTakingOpen, setIsTestTakingOpen] = useState(false);
+  const [editingTest, setEditingTest] = useState<any>(null);
+  const [selectedTestId, setSelectedTestId] = useState<string>("");
   const [editingLesson, setEditingLesson] = useState<LearningPathStep | null>(null);
+  const [selectedLessonId, setSelectedLessonId] = useState<string>("");
+  const [selectedLessonTitle, setSelectedLessonTitle] = useState<string>("");
   const [formLoading, setFormLoading] = useState(false);
 
   const fetchCourseData = async () => {
     try {
       const authHeader = { "Authorization": `Bearer ${localStorage.getItem("token")}` };
       
-      const [courseRes, materialsRes, lessonsRes] = await Promise.all([
+      const responses = await Promise.all([
         fetch(`/api/courses/${id}`, { headers: authHeader }),
         fetch(`/api/courses/${id}/materials`, { headers: authHeader }),
-        fetch(`/api/lessons/course/${id}`, { headers: authHeader })
+        fetch(`/api/lessons/course/${id}`, { headers: authHeader }),
+        fetch(`/api/course-exams/${id}`, { headers: authHeader })
       ]);
+
+      const [courseRes, materialsRes, lessonsRes, testsRes] = responses;
 
       if (courseRes.ok) {
         const courseData = await courseRes.json();
@@ -96,6 +114,11 @@ export function CourseDetail() {
       if (lessonsRes.ok) {
         const lessonsData = await lessonsRes.json();
         setLearningPath(lessonsData);
+      }
+
+      if (testsRes.ok) {
+        const testsData = await testsRes.json();
+        setTests(testsData);
       }
     } catch (error) {
       console.error("Failed to fetch course data:", error);
@@ -183,6 +206,28 @@ export function CourseDetail() {
     }
   };
 
+  const handleDeleteTest = async (testId: string) => {
+    if (!window.confirm("Delete this exam? This cannot be undone.")) return;
+
+    try {
+      const res = await fetch(`/api/course-exams/${id}/${testId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+      });
+
+      if (res.ok) {
+        toast.success("Exam deleted");
+        fetchCourseData();
+      } else {
+        toast.error("Failed to delete exam");
+      }
+    } catch (error) {
+      toast.error("Error connecting to server");
+    }
+  };
+
   const handleSaveLesson = async (data: { title: string; description: string }) => {
     setFormLoading(true);
     try {
@@ -237,6 +282,7 @@ export function CourseDetail() {
       toast.error("Error connecting to server");
     }
   };
+
 
   if (loading) {
     return (
@@ -319,34 +365,142 @@ export function CourseDetail() {
                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${index === 0 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>{index + 1}</div>
                        {index < learningPath.length - 1 && <div className="w-0.5 h-12 bg-gray-100" />}
                      </div>
-                     <div className="flex-1">
-                       <div className="flex items-center justify-between mb-1">
-                         <h3 className="text-lg font-bold text-gray-900">{step.title}</h3>
-                         {isManagement && (
-                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <button onClick={() => { setEditingLesson(step); setIsLessonModalOpen(true); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
-                             <button onClick={() => handleDeletePathStep(step.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                           </div>
-                         )}
-                       </div>
-                       <p className="text-gray-600 text-sm">{step.description}</p>
-                     </div>
-                   </div>
-                 ))}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{step.title}</h3>
+                          <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-2 mr-4">
+                              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md">
+                                <BookOpen className="w-3 h-3" /> {step.vocabularyCount || 0}
+                              </span>
+                              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-green-50 text-green-600 rounded-md">
+                                <FileText className="w-3 h-3" /> {step.materialCount || 0}
+                              </span>
+                            </div>
+                            {isManagement && (
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={() => { 
+                                    setSelectedLessonId(step.id); 
+                                    setSelectedLessonTitle(step.title); 
+                                    setIsLessonContentOpen(true); 
+                                  }} 
+                                  className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  title="Manage Content"
+                                >
+                                  <FolderOpen className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => { setEditingLesson(step); setIsLessonModalOpen(true); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
+                                <button onClick={() => handleDeletePathStep(step.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-3">{step.description}</p>
+                        <button 
+                          onClick={() => { 
+                            setSelectedLessonId(step.id); 
+                            setSelectedLessonTitle(step.title); 
+                            setIsLessonContentOpen(true); 
+                          }}
+                          className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 group/btn"
+                        >
+                          View details <ChevronRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                  {learningPath.length === 0 && <p className="text-center text-gray-400 py-8 italic">No lessons in path yet</p>}
                </div>
+             </div>
+          </section>
+
+          {/* Exam Zone */}
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+             <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+               <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
+                    <Target className="w-5 h-5 text-rose-600" />
+                 </div>
+                 <div>
+                    <h2 className="text-xl font-bold text-gray-900">{t("course.exam_zone")}</h2>
+                    <p className="text-xs text-gray-500">{t("course.exam_zone_desc")}</p>
+                 </div>
+               </div>
+               {isManagement && (
+                 <button 
+                  onClick={() => { setEditingTest(null); setIsTestManagementOpen(true); }} 
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all text-sm font-bold shadow-lg shadow-rose-100"
+                 >
+                   <Plus className="w-4 h-4" /> {t("course.create_test")}
+                 </button>
+               )}
+             </div>
+             <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tests.map((test) => (
+                    <div key={test.id} className="p-5 rounded-2xl border border-gray-100 hover:border-rose-100 hover:bg-rose-50/20 transition-all group relative">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                          <HelpCircle className="w-5 h-5 text-rose-500" />
+                        </div>
+                        {isManagement && (
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { setEditingTest(test); setIsTestManagementOpen(true); }} className="p-1.5 text-gray-400 hover:text-blue-600"><Edit className="w-4 h-4" /></button>
+                            <button onClick={() => handleDeleteTest(test.id)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-gray-900 mb-1">{test.title}</h3>
+                      <p className="text-xs text-gray-500 mb-4 line-clamp-1">{test.description || "No description"}</p>
+                      
+                      <div className="flex items-center gap-3 mb-5">
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                          <Clock className="w-3 h-3" /> {test.timeLimit}m
+                        </span>
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                          <Target className="w-3 h-3" /> {test.passScore}%
+                        </span>
+                      </div>
+
+                      {userRole === "STUDENT" ? (
+                        <button 
+                          onClick={() => { setSelectedTestId(test.id); setIsTestTakingOpen(true); }}
+                          className="w-full py-2.5 bg-rose-600 text-white rounded-xl text-sm font-bold hover:bg-rose-700 transition-all shadow-md shadow-rose-100"
+                        >
+                          {t("course.do_test")}
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => { setEditingTest(test); setIsTestManagementOpen(true); }}
+                          className="w-full py-2.5 border border-rose-100 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-50 transition-all"
+                        >
+                          {t("course.manage_test")}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {tests.length === 0 && (
+                  <div className="text-center py-10">
+                    <Target className="w-12 h-12 text-gray-100 mx-auto mb-3" />
+                    <p className="text-gray-400 italic text-sm">{t("course.no_exams")}</p>
+                  </div>
+                )}
              </div>
           </section>
         </div>
 
         <div className="space-y-8">
-          <section className="bg-[#1A73E8] rounded-2xl p-6 text-white shadow-xl shadow-blue-100">
-            <h2 className="text-lg font-bold mb-4 opacity-90">{t("Instructor")}</h2>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl font-bold">{course.teacherNames ? course.teacherNames[0] : "T"}</div>
-              <div><p className="font-bold text-xl">{course.teacherNames || t("dashboard.ms_thuthao")}</p></div>
-            </div>
-          </section>
+          {course.teacherNames && (
+            <section className="bg-[#1A73E8] rounded-2xl p-6 text-white shadow-xl shadow-blue-100">
+              <h2 className="text-lg font-bold mb-4 opacity-90">{t("Instructor")}</h2>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl font-bold">{course.teacherNames[0]}</div>
+                <div><p className="font-bold text-xl">{course.teacherNames}</p></div>
+              </div>
+            </section>
+          )}
 
           <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-50 flex items-center justify-between">
@@ -389,13 +543,46 @@ export function CourseDetail() {
 
       <SelectMaterialModal isOpen={isSelectMaterialOpen} onClose={() => setIsSelectMaterialOpen(false)} onSelect={handleAddMaterialsBatch} alreadyAssignedIds={materials.map(m => m.id)} />
 
+      <LessonContentModal
+        isOpen={isLessonContentOpen}
+        onClose={() => setIsLessonContentOpen(false)}
+        lessonId={selectedLessonId}
+        lessonTitle={selectedLessonTitle}
+        courseId={id || ""}
+        onContentUpdate={fetchCourseData}
+      />
+
       {isSuperAdmin && (
         <>
-          <CourseFormModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSaveCourse} course={{ ...course, description: course.description || "" }} mode="edit" loading={formLoading} />
-          <AssignStudentsModal courseId={course.id || ''} courseName={course.name} isOpen={isAssignStudentsOpen} onClose={() => setIsAssignStudentsOpen(false)} />
-          <AssignTeachersModal courseId={course.id || ''} courseName={course.name} isOpen={isAssignTeachersOpen} onClose={() => setIsAssignTeachersOpen(false)} />
+          <CourseFormModal 
+            isOpen={isEditModalOpen} 
+            onClose={() => setIsEditModalOpen(false)} 
+            onSave={handleSaveCourse} 
+            course={{ ...course, description: course.description || "" }} 
+            mode="edit" 
+            loading={formLoading} 
+            hasTeacher={!!course.teacherNames}
+          />
+          <AssignStudentsModal courseId={course.id || ''} courseName={course.name} isOpen={isAssignStudentsOpen} onClose={() => setIsAssignStudentsOpen(false)} onSuccess={fetchCourseData} />
+          <AssignTeachersModal courseId={course.id || ''} courseName={course.name} isOpen={isAssignTeachersOpen} onClose={() => setIsAssignTeachersOpen(false)} onSuccess={fetchCourseData} />
         </>
       )}
+
+      <TestManagementModal
+        isOpen={isTestManagementOpen}
+        onClose={() => setIsTestManagementOpen(false)}
+        courseId={id || ""}
+        test={editingTest}
+        onSuccess={fetchCourseData}
+      />
+
+      <TestTakingModal
+        isOpen={isTestTakingOpen}
+        onClose={() => setIsTestTakingOpen(false)}
+        courseId={id || ""}
+        testId={selectedTestId}
+        onComplete={fetchCourseData}
+      />
     </div>
   );
 }

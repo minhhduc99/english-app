@@ -27,7 +27,7 @@ export class UsersService {
       FROM course_students cs
       JOIN courses c ON cs.course_id = c.id
       JOIN users u ON cs.user_id = u.id
-      WHERE cs.status = 'ACTIVE' AND u.deleted_at IS NULL
+      WHERE cs.status = 'ACTIVE' AND u."deletedAt" IS NULL
     `);
 
     // We can map these to match the frontend Student type roughly

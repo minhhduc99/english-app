@@ -12,9 +12,10 @@ interface AssignTeachersModalProps {
   courseName?: string;
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function AssignTeachersModal({ courseId, courseName, isOpen, onClose }: AssignTeachersModalProps) {
+export function AssignTeachersModal({ courseId, courseName, isOpen, onClose, onSuccess }: AssignTeachersModalProps) {
   const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [originalIds, setOriginalIds] = useState<string[]>([]);
@@ -87,6 +88,7 @@ export function AssignTeachersModal({ courseId, courseName, isOpen, onClose }: A
         body: JSON.stringify({ teacherIds: selectedIds }),
       });
       setOriginalIds(selectedIds);
+      if (onSuccess) onSuccess();
       onClose();
     } catch {
       alert("Error assigning teachers. Please try again.");
