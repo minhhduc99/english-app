@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity('student_stats')
@@ -27,4 +27,10 @@ export class StudentStats {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @Column({ default: false })
+  isDeleted!: boolean;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

@@ -34,7 +34,13 @@ export class VocabulariesService {
   }
 
   async remove(id: string) {
-    return await this.vocabularyRepository.delete(id);
+    const vocab = await this.vocabularyRepository.findOne({ where: { id } });
+    if (vocab) {
+      vocab.isDeleted = true;
+      await this.vocabularyRepository.save(vocab);
+      await this.vocabularyRepository.softRemove(vocab);
+    }
+    return { message: 'Vocabulary deleted successfully' };
   }
 
   async countAll() {

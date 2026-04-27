@@ -1,12 +1,19 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 
-const attendanceData = [
-  { name: 'Present', value: 85, color: '#10b981' },
-  { name: 'Late', value: 10, color: '#f59e0b' },
-  { name: 'Absent', value: 5, color: '#ef4444' },
-];
+interface WeeklyAttendanceChartProps {
+  data?: {
+    present: number;
+    late: number;
+    absent: number;
+  };
+}
 
-export function WeeklyAttendanceChart() {
+export function WeeklyAttendanceChart({ data }: WeeklyAttendanceChartProps) {
+  const attendanceData = [
+    { name: 'Present', value: data?.present ?? 85, color: '#10b981' },
+    { name: 'Late', value: data?.late ?? 10, color: '#f59e0b' },
+    { name: 'Absent', value: data?.absent ?? 5, color: '#ef4444' },
+  ];
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-6">Weekly Attendance</h2>

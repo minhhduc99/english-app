@@ -59,14 +59,10 @@ export class MaterialsService {
       throw new ForbiddenException('You do not have permission to delete this material');
     }
 
-    // Delete file from disk
-    const filePath = path.join(this.libraryPath, material.fileName);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    // Delete from DB
-    await this.materialRepository.remove(material);
+    // Mark as deleted in DB
+    material.isDeleted = true;
+    await this.materialRepository.save(material);
+    await this.materialRepository.softRemove(material);
     return { message: 'Material deleted successfully' };
   }
 

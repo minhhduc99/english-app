@@ -42,7 +42,9 @@ export class LessonsService {
   async remove(id: string) {
     const lesson = await this.lessonRepository.findOne({ where: { id } });
     if (!lesson) throw new NotFoundException('Lesson not found');
-    await this.lessonRepository.remove(lesson);
+    lesson.isDeleted = true;
+    await this.lessonRepository.save(lesson);
+    await this.lessonRepository.softRemove(lesson);
     return { message: 'Lesson deleted successfully' };
   }
 

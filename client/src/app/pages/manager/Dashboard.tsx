@@ -1,9 +1,46 @@
+import { useEffect, useState } from 'react';
 import { StatCard } from '../../components/manager/StatCard';
 import { TodaysClassesTable } from '../../components/manager/TodaysClassesTable';
 import { WeeklyAttendanceChart } from '../../components/manager/WeeklyAttendanceChart';
 import { Users, CheckCircle, FileText, AlertTriangle } from 'lucide-react';
 
 export function ManagerDashboard() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/dashboard/overview', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const result = await response.json();
+          setData(result);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const cards = data?.cards || {};
+
   return (
     <div className="p-8">
           {/* Header */}
@@ -19,8 +56,8 @@ export function ManagerDashboard() {
               iconColor="text-blue-600"
               iconBgColor="bg-blue-100"
               title="Current Students"
-              value={342}
-              change="+12 this week"
+              value={cards.students?.value || 0}
+              change={cards.students?.trend || "0 this week"}
               changeType="positive"
             />
             <StatCard
@@ -28,8 +65,8 @@ export function ManagerDashboard() {
               iconColor="text-green-600"
               iconBgColor="bg-green-100"
               title="Today's Attendance Rate"
-              value="94%"
-              change="+2% from yesterday"
+              value={`${cards.attendanceRate?.value || 0}%`}
+              change={cards.attendanceRate?.trend || "0% from yesterday"}
               changeType="positive"
             />
             <StatCard
@@ -37,8 +74,8 @@ export function ManagerDashboard() {
               iconColor="text-purple-600"
               iconBgColor="bg-purple-100"
               title="Pending AI Materials"
-              value={8}
-              change="3 high priority"
+              value={cards.pendingMaterials?.value || 0}
+              change={cards.pendingMaterials?.note || "0 high priority"}
               changeType="neutral"
             />
             <StatCard
@@ -46,8 +83,8 @@ export function ManagerDashboard() {
               iconColor="text-orange-600"
               iconBgColor="bg-orange-100"
               title="Absence Alerts"
-              value={5}
-              change="Need attention"
+              value={cards.absenceAlerts?.value || 0}
+              change={cards.absenceAlerts?.note || "0 Need attention"}
               changeType="negative"
             />
           </div>
@@ -56,12 +93,12 @@ export function ManagerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Today's Classes Table - Takes 2 columns */}
             <div className="lg:col-span-2">
-              <TodaysClassesTable />
+              <TodaysClassesTable classes={data?.todayClasses} />
             </div>
 
             {/* Weekly Attendance Chart - Takes 1 column */}
             <div className="lg:col-span-1">
-              <WeeklyAttendanceChart />
+              <WeeklyAttendanceChart data={data?.weeklyAttendance} />
             </div>
         </div>
     </div>

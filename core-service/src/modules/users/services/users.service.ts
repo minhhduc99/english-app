@@ -26,7 +26,8 @@ export class UsersService {
       SELECT cs.user_id, c.name 
       FROM course_students cs
       JOIN courses c ON cs.course_id = c.id
-      WHERE cs.status = 'ACTIVE'
+      JOIN users u ON cs.user_id = u.id
+      WHERE cs.status = 'ACTIVE' AND u.deleted_at IS NULL
     `);
 
     // We can map these to match the frontend Student type roughly
@@ -56,7 +57,9 @@ export class UsersService {
     if (!student) {
       throw new NotFoundException('Student not found');
     }
-    await this.userRepository.remove(student);
+    student.isDeleted = true;
+    await this.userRepository.save(student);
+    await this.userRepository.softRemove(student);
   }
   async findById(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });

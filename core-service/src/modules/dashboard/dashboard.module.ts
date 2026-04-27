@@ -5,10 +5,11 @@ import { DashboardService } from './services/dashboard.service';
 import { MaterialsModule } from '../materials/materials.module';
 import { VocabulariesModule } from '../vocabularies/vocabularies.module';
 import { User } from '../users/entities/user.entity';
+import { Course } from '../courses/entities/course.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Course]),
     MaterialsModule,
     VocabulariesModule
   ],

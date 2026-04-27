@@ -137,7 +137,7 @@ export class CoursesService {
         ) as "teacherNames"
       FROM courses c
       INNER JOIN course_students cs ON cs.course_id = c.id AND cs.user_id = $1
-      WHERE c.status = 'ACTIVE' ${searchQuery}
+      WHERE c.status = 'ACTIVE' AND c.deleted_at IS NULL ${searchQuery}
       ORDER BY c.created_at DESC
     `;
 
@@ -163,7 +163,7 @@ export class CoursesService {
           WHERE ct.course_id = c.id
         ) as "teacherNames"
       FROM courses c
-      WHERE c.id = $1
+      WHERE c.id = $1 AND c.deleted_at IS NULL
     `;
     const results = await this.dataSource.query(sql, [id]);
     if (!results || results.length === 0) {
@@ -208,8 +208,14 @@ export class CoursesService {
    */
   async remove(id: string): Promise<{ message: string }> {
     this.logger.log(`Deleting course ID: ${id}`);
-    const course = await this.findOne(id);
-    await this.courseRepository.remove(course);
+    const course = await this.courseRepository.findOne({ where: { id } });
+    if (!course) {
+      throw new NotFoundException(`Course with ID "${id}" not found.`);
+    }
+    course.isDeleted = true;
+    // We save first to ensure isDeleted is persisted, then softRemove for deletedAt
+    await this.courseRepository.save(course);
+    await this.courseRepository.softRemove(course);
     return { message: `Course "${course.name}" has been deleted.` };
   }
 
@@ -260,7 +266,7 @@ export class CoursesService {
         UPPER(SUBSTR(u."fullName", 1, 1)) AS avatar
       FROM course_students cs
       JOIN users u ON cs.user_id = u.id
-      WHERE cs.course_id = $1 AND cs.status = 'ACTIVE'
+      WHERE cs.course_id = $1 AND cs.status = 'ACTIVE' AND u.deleted_at IS NULL
       ORDER BY u."fullName"
     `, [courseId]);
   }
@@ -272,7 +278,7 @@ export class CoursesService {
     return this.dataSource.query(`
       SELECT id, "fullName"
       FROM users
-      WHERE role::text = 'STUDENT'
+      WHERE role::text = 'STUDENT' AND deleted_at IS NULL
       ORDER BY "fullName"
     `);
   }
@@ -323,7 +329,7 @@ export class CoursesService {
         u.email
       FROM course_teachers ct
       JOIN users u ON ct.user_id = u.id
-      WHERE ct.course_id = $1 AND ct.status = 'ACTIVE'
+      WHERE ct.course_id = $1 AND ct.status = 'ACTIVE' AND u.deleted_at IS NULL
       ORDER BY u."fullName"
     `, [courseId]);
   }
@@ -335,7 +341,7 @@ export class CoursesService {
     return this.dataSource.query(`
       SELECT id, "fullName"
       FROM users
-      WHERE role::text = 'TEACHER'
+      WHERE role::text = 'TEACHER' AND deleted_at IS NULL
       ORDER BY "fullName"
     `);
   }
@@ -384,7 +390,7 @@ export class CoursesService {
         m."createdAt"
       FROM course_materials cm
       JOIN materials m ON cm.material_id = m.id
-      WHERE cm.course_id = $1
+      WHERE cm.course_id = $1 AND m.deleted_at IS NULL
       ORDER BY m."createdAt" DESC
     `, [courseId]);
 
