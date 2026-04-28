@@ -8,11 +8,31 @@ import {
   Link as LinkIcon, 
   ExternalLink,
   ChevronRight,
-  GraduationCap
+  GraduationCap,
+  PlaySquare
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { toast } from "sonner";
 import { SelectMaterialModal } from "./manager/SelectMaterialModal";
+import { InteractiveVideoPlayer, VideoQuestion } from "./InteractiveVideoPlayer";
+
+const MOCK_VIDEO_QUESTIONS: VideoQuestion[] = [
+  {
+    id: "q1",
+    timestamp: 5,
+    type: "MULTIPLE_CHOICE",
+    question: "What is the name of the big bunny?",
+    options: ["Big Buck Bunny", "Bugs Bunny", "Roger Rabbit", "Peter Rabbit"],
+    correctAnswer: "Big Buck Bunny"
+  },
+  {
+    id: "q2",
+    timestamp: 12,
+    type: "FILL_BLANK",
+    question: "Fill in the blank: The bunny is eating an ______",
+    correctAnswer: "apple"
+  }
+];
 
 interface Vocabulary {
   id: string;
@@ -48,7 +68,7 @@ export function LessonContentModal({
   onContentUpdate
 }: LessonContentModalProps) {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"vocab" | "materials">("vocab");
+  const [activeTab, setActiveTab] = useState<"vocab" | "materials" | "videos">("vocab");
   const [loading, setLoading] = useState(true);
   const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -217,6 +237,18 @@ export function LessonContentModal({
             </div>
             {activeTab === "materials" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#1A73E8] rounded-t-full" />}
           </button>
+          <button
+            onClick={() => setActiveTab("videos")}
+            className={`pb-4 text-sm font-bold tracking-wide transition-all relative ${
+              activeTab === "videos" ? "text-[#1A73E8]" : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <PlaySquare className="w-4 h-4" />
+              {t("video.tab")}
+            </div>
+            {activeTab === "videos" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#1A73E8] rounded-t-full" />}
+          </button>
         </div>
 
         {/* Content Area */}
@@ -308,7 +340,7 @@ export function LessonContentModal({
                 )}
               </div>
             </div>
-          ) : (
+          ) : activeTab === "materials" ? (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -355,6 +387,51 @@ export function LessonContentModal({
                     <p className="text-sm font-bold text-gray-400">No materials linked to this lesson</p>
                   </div>
                 )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <div className="w-1.5 h-6 bg-purple-500 rounded-full" />
+                  Interactive Video
+                </h3>
+                <button
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 transition-all text-sm font-bold"
+                >
+                  <Plus className="w-4 h-4" /> Add Video
+                </button>
+              </div>
+
+              <div className="bg-white p-6 border border-gray-100 rounded-[2rem] shadow-sm">
+                <InteractiveVideoPlayer 
+                  src="https://www.w3schools.com/html/mov_bbb.mp4"
+                  poster="https://www.w3schools.com/html/pic_trulli.jpg"
+                  questions={MOCK_VIDEO_QUESTIONS}
+                />
+                
+                <div className="mt-8">
+                  <h4 className="font-bold text-gray-900 mb-4">Interactive Questions</h4>
+                  <div className="space-y-3">
+                    {MOCK_VIDEO_QUESTIONS.map((q, idx) => (
+                      <div key={q.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-gray-800">{q.question}</p>
+                            <p className="text-xs text-gray-500 mt-1">Appears at: {q.timestamp}s • Type: {q.type}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="text-gray-400 hover:text-blue-500 transition-colors">Edit</button>
+                          <button className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -1,9 +1,13 @@
 import { BookOpen, CheckCircle2, Circle } from "lucide-react";
 import * as Progress from "@radix-ui/react-progress";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useState } from "react";
+import { InteractiveVideoModal } from "../../components/InteractiveVideoModal";
+import { PlaySquare } from "lucide-react";
 
 export function LearningPath() {
   const { t } = useLanguage();
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -57,6 +61,13 @@ export function LearningPath() {
                 </button>
                 <button className="border border-[#E5E7EB] text-[#6B7280] py-2 px-4 rounded-lg font-medium hover:bg-[#F8F9FA] transition-colors">
                   {t("learning_path.speaking")}
+                </button>
+                <button 
+                  onClick={() => setIsVideoOpen(true)}
+                  className="flex items-center gap-2 border-2 border-purple-200 text-purple-700 bg-purple-50 py-2 px-4 rounded-lg font-bold hover:bg-purple-100 hover:border-purple-300 transition-all shadow-sm"
+                >
+                  <PlaySquare className="w-4 h-4" />
+                  {t("video.tab")}
                 </button>
               </div>
             </div>
@@ -264,6 +275,12 @@ export function LearningPath() {
           </div>
         </div>
       </div>
+
+      <InteractiveVideoModal 
+        isOpen={isVideoOpen} 
+        onClose={() => setIsVideoOpen(false)} 
+        title={t("learning_path.unit3")} 
+      />
     </div>
   );
 }

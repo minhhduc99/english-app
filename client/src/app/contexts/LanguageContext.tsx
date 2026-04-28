@@ -345,6 +345,13 @@ const translations: Record<Language, Record<string, string>> = {
     "games.rewards_title": "Rewards Earned",
     "games.xp": "XP",
     "games.coins": "Coins",
+    "video.interactive_question": "Knowledge Check",
+    "video.type_answer": "Type your answer...",
+    "video.correct": "Correct! Well done.",
+    "video.incorrect": "Incorrect. Try again!",
+    "video.submit": "Submit Answer",
+    "video.continue": "Continue Video",
+    "video.tab": "Interactive Video",
   },
 
   vi: {
@@ -628,6 +635,13 @@ const translations: Record<Language, Record<string, string>> = {
     "test.description": "Mô tả (Tùy chọn)",
     "test.questions": "Câu hỏi",
     "test.add_question": "Thêm câu hỏi",
+    "video.interactive_question": "Kiểm tra kiến thức",
+    "video.type_answer": "Nhập câu trả lời của bạn...",
+    "video.correct": "Chính xác! Rất tốt.",
+    "video.incorrect": "Sai rồi. Vui lòng thử lại!",
+    "video.submit": "Gửi câu trả lời",
+    "video.continue": "Tiếp tục Video",
+    "video.tab": "Video tương tác",
   },
 };
 
