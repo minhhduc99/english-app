@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, X, Clock, Target, CheckCircle, ListChecks } from "lucide-react";
+import { Plus, Trash2, X, Clock, Target, CheckCircle, ListChecks, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -15,6 +15,7 @@ interface TestData {
   description: string;
   timeLimit: number;
   passScore: number;
+  totalScore: number;
   questions: Question[];
 }
 
@@ -33,6 +34,7 @@ export function TestManagementModal({ isOpen, onClose, courseId, test, onSuccess
     description: "",
     timeLimit: 60,
     passScore: 50,
+    totalScore: 100,
     questions: [
       { content: "", options: ["", "", "", ""], correctAnswer: 0 }
     ]
@@ -46,6 +48,7 @@ export function TestManagementModal({ isOpen, onClose, courseId, test, onSuccess
         description: test.description || "",
         timeLimit: test.timeLimit || 60,
         passScore: test.passScore || 50,
+        totalScore: test.totalScore || 100,
         questions: test.questions?.length > 0 ? test.questions : [{ content: "", options: ["", "", "", ""], correctAnswer: 0 }]
       });
     } else {
@@ -54,6 +57,7 @@ export function TestManagementModal({ isOpen, onClose, courseId, test, onSuccess
         description: "",
         timeLimit: 60,
         passScore: 50,
+        totalScore: 100,
         questions: [{ content: "", options: ["", "", "", ""], correctAnswer: 0 }]
       });
     }
@@ -145,8 +149,8 @@ export function TestManagementModal({ isOpen, onClose, courseId, test, onSuccess
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
           {/* General Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4 md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-4 md:col-span-3">
               <label className="text-sm font-bold text-gray-700 ml-1">{t("test.title")}</label>
               <input
                 type="text"
@@ -169,9 +173,21 @@ export function TestManagementModal({ isOpen, onClose, courseId, test, onSuccess
               </div>
             </div>
             <div className="space-y-4">
-              <label className="text-sm font-bold text-gray-700 ml-1">{t("test.pass_score")}</label>
+              <label className="text-sm font-bold text-gray-700 ml-1">{t("test.total_score")}</label>
               <div className="relative">
                 <Target className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="number"
+                  value={formData.totalScore}
+                  onChange={(e) => setFormData({ ...formData, totalScore: parseInt(e.target.value) || 0 })}
+                  className="w-full pl-12 pr-5 py-3.5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all text-gray-900 font-medium"
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-gray-700 ml-1">{t("test.pass_score")}</label>
+              <div className="relative">
+                <CheckCircle className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="number"
                   value={formData.passScore}
@@ -180,7 +196,7 @@ export function TestManagementModal({ isOpen, onClose, courseId, test, onSuccess
                 />
               </div>
             </div>
-            <div className="space-y-4 md:col-span-2">
+            <div className="space-y-4 md:col-span-3">
               <label className="text-sm font-bold text-gray-700 ml-1">{t("test.description")}</label>
               <textarea
                 value={formData.description}
@@ -226,27 +242,82 @@ export function TestManagementModal({ isOpen, onClose, courseId, test, onSuccess
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {question.options.map((option, oIndex) => (
-                      <div key={oIndex} className="relative group">
-                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${question.correctAnswer === oIndex ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500 group-hover:bg-indigo-100'}`}>
-                          {String.fromCharCode(65 + oIndex)}
+                    {question.options.map((option, oIndex) => {
+                      const [textPart, imagePart] = option.split('[IMG]');
+                      const hasImage = !!imagePart;
+                      const displayImage = imagePart || (option.startsWith('data:image/') || /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(option) ? option : '');
+                      const displayText = hasImage ? textPart : (displayImage ? '' : option);
+                      const isCorrect = question.correctAnswer === oIndex;
+
+                      return (
+                        <div key={oIndex} className={`relative group w-full rounded-2xl flex flex-col transition-all border-2 ${isCorrect ? 'border-green-200 bg-green-50/30' : 'border-transparent bg-gray-50 hover:bg-gray-100'}`}>
+                          {/* Top Row: Input & Controls */}
+                          <div className="flex items-center min-h-[60px] relative w-full">
+                            {/* A/B/C Label */}
+                            <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${isCorrect ? 'bg-green-500 text-white' : 'bg-indigo-100 text-indigo-500 group-hover:bg-indigo-200'}`}>
+                              {String.fromCharCode(65 + oIndex)}
+                            </div>
+                            
+                            {/* Text Input */}
+                            <input
+                              type="text"
+                              value={displayText}
+                              onChange={(e) => handleOptionChange(qIndex, oIndex, displayImage ? `${e.target.value}[IMG]${displayImage}` : e.target.value)}
+                              className="w-full pl-16 pr-24 py-4 bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-600 placeholder:text-gray-400"
+                              placeholder={`Option ${oIndex + 1} text`}
+                            />
+
+                            {/* Action Buttons */}
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                              {!displayImage && (
+                                <label className={`cursor-pointer p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all block ${isCorrect ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                                  <ImageIcon className="w-5 h-5" />
+                                  <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                          handleOptionChange(qIndex, oIndex, `${displayText}[IMG]${reader.result}`);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }} 
+                                  />
+                                </label>
+                              )}
+
+                              <button 
+                                type="button"
+                                onClick={() => handleQuestionChange(qIndex, "correctAnswer", oIndex)}
+                                className={`p-2 rounded-xl transition-all ${isCorrect ? 'text-green-600 bg-green-50 opacity-100' : 'text-gray-300 hover:text-green-500 hover:bg-green-50 opacity-0 group-hover:opacity-100'}`}
+                              >
+                                <CheckCircle className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Image Preview Area */}
+                          {displayImage && (
+                            <div className="px-4 pb-4 pl-16 relative">
+                              <div className="relative inline-block rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm group/img">
+                                <img src={displayImage} alt="preview" className="h-24 w-auto object-contain bg-white" />
+                                <button 
+                                  type="button"
+                                  onClick={() => handleOptionChange(qIndex, oIndex, displayText)}
+                                  className="absolute top-1 right-1 p-1.5 bg-black/60 hover:bg-red-500 rounded-lg text-white opacity-0 group-hover/img:opacity-100 transition-all backdrop-blur-sm"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <input
-                          type="text"
-                          value={option}
-                          onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                          className={`w-full pl-12 pr-12 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm font-medium ${question.correctAnswer === oIndex ? 'ring-2 ring-green-100' : ''}`}
-                          placeholder={`Option ${oIndex + 1}`}
-                        />
-                        <button 
-                          type="button"
-                          onClick={() => handleQuestionChange(qIndex, "correctAnswer", oIndex)}
-                          className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-all ${question.correctAnswer === oIndex ? 'text-green-600 bg-green-50' : 'text-gray-300 hover:text-indigo-400'}`}
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}

@@ -89,7 +89,8 @@ export function TestTakingModal({ isOpen, onClose, courseId, testId, onComplete 
       }
     });
 
-    const calculatedScore = (correctCount / test.questions.length) * 100;
+    const maxScore = test.totalScore || 100;
+    const calculatedScore = (correctCount / test.questions.length) * maxScore;
     setScore(calculatedScore);
     
     if (onComplete) onComplete();
@@ -136,7 +137,10 @@ export function TestTakingModal({ isOpen, onClose, courseId, testId, onComplete 
   }
 
   if (isSubmitted) {
-    const passed = score >= test.passScore;
+    const maxScore = test.totalScore || 100;
+    const passThreshold = (test.passScore / 100) * maxScore;
+    const passed = score >= passThreshold;
+    
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -149,7 +153,9 @@ export function TestTakingModal({ isOpen, onClose, courseId, testId, onComplete 
           
           <div className="bg-gray-50 rounded-3xl p-8 mb-8">
             <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Your Final Score</p>
-            <p className={`text-6xl font-black ${passed ? 'text-green-500' : 'text-red-500'}`}>{Math.round(score)}%</p>
+            <p className={`text-6xl font-black ${passed ? 'text-green-500' : 'text-red-500'}`}>
+              {Math.round(score)}<span className="text-3xl text-gray-400">/{maxScore}</span>
+            </p>
             <div className="mt-4 flex items-center justify-center gap-2">
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${passed ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
                 {passed ? "PASSED" : "FAILED"}
@@ -192,11 +198,11 @@ export function TestTakingModal({ isOpen, onClose, courseId, testId, onComplete 
         </button>
       </div>
 
-      {/* Progress Bar */}
+      {/* Time Bar */}
       <div className="h-1.5 w-full bg-gray-100">
         <div 
-          className="h-full bg-indigo-600 transition-all duration-300" 
-          style={{ width: `${((currentQuestionIndex + 1) / test.questions.length) * 100}%` }}
+          className={`h-full transition-all duration-1000 ease-linear ${timeLeft < 60 ? 'bg-red-500' : 'bg-indigo-600'}`}
+          style={{ width: `${(timeLeft / (test.timeLimit * 60)) * 100}%` }}
         />
       </div>
 
@@ -225,9 +231,21 @@ export function TestTakingModal({ isOpen, onClose, courseId, testId, onComplete 
               }`}>
                 {String.fromCharCode(65 + index)}
               </div>
-              <span className={`text-lg font-semibold ${answers[currentQuestionIndex] === index ? 'text-indigo-900' : 'text-gray-700'}`}>
-                {option}
-              </span>
+              <div className={`flex-1 flex flex-col items-start justify-center gap-3 ${answers[currentQuestionIndex] === index ? 'text-indigo-900' : 'text-gray-700'} overflow-hidden`}>
+                {(() => {
+                  const [textPart, imagePart] = option.split('[IMG]');
+                  const hasImage = !!imagePart;
+                  const displayImage = imagePart || (option.startsWith('data:image/') || /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))/i.test(option) ? option : '');
+                  const displayText = hasImage ? textPart : (displayImage ? '' : option);
+
+                  return (
+                    <>
+                      {displayText && <span className="text-lg font-semibold">{displayText}</span>}
+                      {displayImage && <img src={displayImage} alt={`Option ${index + 1}`} className="max-h-32 w-auto object-contain rounded-lg shadow-sm bg-white" />}
+                    </>
+                  );
+                })()}
+              </div>
               {answers[currentQuestionIndex] === index && (
                 <div className="ml-auto w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
                   <div className="w-2.5 h-2.5 bg-white rounded-full" />

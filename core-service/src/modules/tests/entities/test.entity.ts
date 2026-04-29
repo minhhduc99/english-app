@@ -33,6 +33,9 @@ export class Test {
   @Column({ type: 'int', default: 60 })
   timeLimit: number; // in minutes
 
+  @Column({ type: 'int', default: 100 })
+  totalScore: number; // Max score for the test
+
   @Column({ type: 'int', default: 50 })
   passScore: number; // percentage
 

@@ -228,6 +228,25 @@ export function CourseDetail() {
     }
   };
 
+  const handleEditTest = async (testId: string) => {
+    try {
+      const res = await fetch(`/api/course-exams/${id}/${testId}`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (res.ok) {
+        const testData = await res.json();
+        setEditingTest(testData);
+        setIsTestManagementOpen(true);
+      } else {
+        toast.error("Failed to load exam details");
+      }
+    } catch (err) {
+      toast.error("Error connecting to server");
+    }
+  };
+
   const handleSaveLesson = async (data: { title: string; description: string }) => {
     setFormLoading(true);
     try {
@@ -446,7 +465,7 @@ export function CourseDetail() {
                         </div>
                         {isManagement && (
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => { setEditingTest(test); setIsTestManagementOpen(true); }} className="p-1.5 text-gray-400 hover:text-blue-600"><Edit className="w-4 h-4" /></button>
+                            <button onClick={() => handleEditTest(test.id)} className="p-1.5 text-gray-400 hover:text-blue-600"><Edit className="w-4 h-4" /></button>
                             <button onClick={() => handleDeleteTest(test.id)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         )}
@@ -472,7 +491,7 @@ export function CourseDetail() {
                         </button>
                       ) : (
                         <button 
-                          onClick={() => { setEditingTest(test); setIsTestManagementOpen(true); }}
+                          onClick={() => handleEditTest(test.id)}
                           className="w-full py-2.5 border border-rose-100 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-50 transition-all"
                         >
                           {t("course.manage_test")}

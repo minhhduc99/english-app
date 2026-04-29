@@ -62,22 +62,43 @@ export class DashboardService {
     const absenceAlerts = parseInt(statsRes.absent || 0);
 
     // Today's Classes based on study_schedule
-    const activeCourses = await this.courseRepository.find({
-      where: { status: CourseStatus.ACTIVE },
-      relations: ['creator']
-    });
-    
     const dayOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(new Date());
-    
-    const todayClasses = activeCourses.filter(course => {
-      return course.studySchedule && course.studySchedule.includes(dayOfWeek);
-    }).map(course => {
-      const timeMatch = course.studySchedule.match(/\d{2}:\d{2}\s*-\s*\d{2}:\d{2}/);
+    const searchPattern = `%${dayOfWeek}%`;
+
+    // Ensure table exists just in case
+    await this.dataSource.query(`
+      CREATE TABLE IF NOT EXISTS course_teachers (
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        user_id   UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+        status    VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+        PRIMARY KEY (course_id, user_id)
+      )
+    `);
+
+    const activeCoursesWithTeachers = await this.dataSource.query(`
+      SELECT 
+        c.id, 
+        c.name as "className", 
+        c.study_schedule as "studySchedule",
+        (
+          SELECT string_agg(u."fullName", ', ')
+          FROM course_teachers ct
+          JOIN users u ON ct.user_id = u.id
+          WHERE ct.course_id = c.id
+        ) as "teacherNames"
+      FROM courses c
+      WHERE c.status = 'ACTIVE' 
+        AND c.deleted_at IS NULL 
+        AND c.study_schedule LIKE $1
+    `, [searchPattern]);
+
+    const todayClasses = activeCoursesWithTeachers.map(course => {
+      const timeMatch = course.studySchedule ? course.studySchedule.match(/\d{2}:\d{2}\s*-\s*\d{2}:\d{2}/) : null;
       return {
         id: course.id,
-        className: course.name,
+        className: course.className,
         time: timeMatch ? timeMatch[0] : course.studySchedule,
-        teacher: course.creator?.fullName || 'N/A'
+        teacher: course.teacherNames || 'N/A'
       };
     });
 
