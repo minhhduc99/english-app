@@ -13,7 +13,7 @@ import {
   Request,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 
 import { CoursesService } from '../services/courses.service';
 import { CreateCourseDto } from '../dto/create-course.dto';
@@ -24,8 +24,10 @@ import { AuthGuard } from '../../../common/guards/auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 
 @ApiTags('Courses')
+@ApiBearerAuth()
 @Controller('courses')
 @UseGuards(AuthGuard, RolesGuard)
+
 @UseInterceptors(ClassSerializerInterceptor)
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}

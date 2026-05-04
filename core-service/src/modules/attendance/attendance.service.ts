@@ -195,4 +195,110 @@ export class AttendanceService {
       students: Array.from(studentMap.values())
     };
   }
+
+  async generateMonthlyReport(courseId: string, month: number, year: number): Promise<exceljs.Workbook> {
+    // 1. Get Course Info
+    const courses = await this.dataSource.query('SELECT name FROM courses WHERE id = $1', [courseId]);
+    if (courses.length === 0) throw new NotFoundException('Course not found');
+    const courseName = courses[0].name;
+
+    // 2. Get All Active Students
+    const students = await this.dataSource.query(
+      `SELECT u.id, u."fullName" 
+       FROM course_students cs
+       JOIN users u ON cs.user_id = u.id
+       WHERE cs.course_id = $1 AND cs.status = 'ACTIVE' AND u."deletedAt" IS NULL
+       ORDER BY u."fullName"`,
+      [courseId],
+    );
+
+    // 3. Get Attendance Records for the Month
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
+
+    const records = await this.dataSource.query(
+      `SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, student_id, status 
+       FROM course_attendance 
+       WHERE course_id = $1 AND date >= $2 AND date <= $3
+       ORDER BY date ASC`,
+      [courseId, startDate, endDate],
+    );
+
+    // 4. Organize Data
+    const dates = [...new Set(records.map((r: any) => r.date))].sort() as string[];
+    const attendanceMap = new Map();
+    for (const r of records) {
+      const key = `${r.student_id}_${r.date}`;
+      attendanceMap.set(key, r.status);
+    }
+
+    // 5. Create Workbook
+    const workbook = new exceljs.Workbook();
+    const worksheet = workbook.addWorksheet('Monthly Attendance');
+
+    // Title & Info
+    worksheet.mergeCells('A1:E1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = `MONTHLY ATTENDANCE REPORT - ${courseName.toUpperCase()}`;
+    titleCell.font = { bold: true, size: 16 };
+    titleCell.alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells('A2:E2');
+    const subTitleCell = worksheet.getCell('A2');
+    subTitleCell.value = `Period: ${month}/${year}`;
+    subTitleCell.font = { bold: true, size: 12 };
+    subTitleCell.alignment = { horizontal: 'center' };
+
+    // Headers
+    const headerRow: any[] = ['No', 'Full Name'];
+    dates.forEach(date => {
+      const day = date.split('-')[2];
+      headerRow.push(day);
+    });
+    headerRow.push('Present', 'Absent', 'Late', '%');
+
+    const header = worksheet.addRow(headerRow);
+    header.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+      cell.font = { bold: true };
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    // Data Rows
+    students.forEach((student: any, index: number) => {
+      const rowData: any[] = [index + 1, student.fullName];
+      let presentCount = 0;
+      let absentCount = 0;
+      let lateCount = 0;
+
+      dates.forEach(date => {
+        const status = attendanceMap.get(`${student.id}_${date}`) || '-';
+        rowData.push(status.charAt(0)); // Show P, A, L
+        if (status === 'PRESENT') presentCount++;
+        else if (status === 'ABSENT') absentCount++;
+        else if (status === 'LATE') lateCount++;
+      });
+
+      const totalTaken = presentCount + absentCount + lateCount;
+      const percentage = totalTaken > 0 ? Math.round((presentCount / totalTaken) * 100) : 0;
+
+      rowData.push(presentCount, absentCount, lateCount, `${percentage}%`);
+      const row = worksheet.addRow(rowData);
+      row.eachCell(cell => {
+        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { horizontal: 'center' };
+      });
+    });
+
+    // Column widths
+    worksheet.getColumn(1).width = 5;
+    worksheet.getColumn(2).width = 30;
+    for (let i = 3; i <= dates.length + 2; i++) {
+      worksheet.getColumn(i).width = 4;
+    }
+
+    return workbook;
+  }
 }
+

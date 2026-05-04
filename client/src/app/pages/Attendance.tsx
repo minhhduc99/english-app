@@ -38,6 +38,36 @@ function AttendanceHistory() {
 
   const courseName = courses.find(c => c.id === selectedCourse)?.name || "";
 
+  // Report State
+  const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
+  const [reportYear, setReportYear] = useState(new Date().getFullYear());
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportMonthly = async () => {
+    if (!selectedCourse) return;
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/attendance/report/${selectedCourse}?month=${reportMonth}&year=${reportYear}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_report_${courseName}_${reportMonth}_${reportYear}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Transform data
   const attendanceData = useMemo(() => {
     if (!history.dates || !history.students) return [];
@@ -65,25 +95,57 @@ function AttendanceHistory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">{t('attendance.history_title')}</h1>
           <p className="text-gray-500 mt-1">{t('attendance.history_subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">{t('attendance.select_course')}</label>
-          <select
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
-          >
-            {courses.length === 0 && <option value="">No courses</option>}
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>{c.name} ({c.courseCode})</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">{t('attendance.select_course')}</label>
+            <select
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+            >
+              {courses.length === 0 && <option value="">No courses</option>}
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name} ({c.courseCode})</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
+            <select
+              value={reportMonth}
+              onChange={(e) => setReportMonth(parseInt(e.target.value, 10))}
+              className="bg-transparent border-none text-sm focus:ring-0 cursor-pointer"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <select
+              value={reportYear}
+              onChange={(e) => setReportYear(parseInt(e.target.value, 10))}
+              className="bg-transparent border-none text-sm focus:ring-0 cursor-pointer"
+            >
+              {[2024, 2025, 2026].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleExportMonthly}
+              disabled={exporting || !selectedCourse}
+              className="ml-2 px-4 py-1.5 bg-[#1A73E8] text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {exporting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Calendar className="w-4 h-4" />}
+              {t('attendance.export_monthly')}
+            </button>
+          </div>
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 p-6">

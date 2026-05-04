@@ -22,11 +22,15 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { AuthGuard } from '../../common/guards/auth.guard';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiTags('materials')
+@ApiBearerAuth()
 @Controller('materials')
 @UseGuards(AuthGuard, RolesGuard)
 export class MaterialsController {
   constructor(private readonly materialsService: MaterialsService) {}
+
 
   @Post('upload')
   @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
@@ -73,12 +77,23 @@ export class MaterialsController {
 
   @Get('download/:id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
+  @ApiOperation({ summary: 'Download material file' })
   async download(@Param('id') id: string, @Res() res: Response) {
     const fileInfo = await this.materialsService.getDownloadPath(id);
     return res.download(fileInfo.path, fileInfo.originalName);
   }
 
+  @Get('view/:id')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER, Role.STUDENT)
+  @ApiOperation({ summary: 'Preview material file inline' })
+  async view(@Param('id') id: string, @Res() res: Response) {
+    const fileInfo = await this.materialsService.getDownloadPath(id);
+    return res.sendFile(fileInfo.path);
+  }
+
+
   @Delete(':id')
+
   @Roles(Role.ADMIN, Role.MANAGER, Role.TEACHER)
   async remove(@Param('id') id: string, @Request() req: any) {
     return await this.materialsService.delete(id, req.user);

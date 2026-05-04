@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
+import { MaterialPreviewModal } from "../components/MaterialPreviewModal";
 
 interface Material {
   id: string;
@@ -41,6 +42,9 @@ export function LearningMaterials() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadCategory, setUploadCategory] = useState("GENERAL");
   const [vocabCount, setVocabCount] = useState(0);
+
+  // Preview State
+  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
 
   const fetchMaterials = async () => {
     try {
@@ -223,6 +227,9 @@ export function LearningMaterials() {
       case "PDF": return "bg-red-50 text-red-700 border-red-200";
       case "XLSX": return "bg-green-50 text-green-700 border-green-200";
       case "PPTX": return "bg-orange-50 text-orange-700 border-orange-200";
+      case "PNG":
+      case "JPG":
+      case "JPEG": return "bg-blue-50 text-blue-700 border-blue-200";
       default: return "bg-gray-50 text-gray-700 border-gray-200";
     }
   };
@@ -342,7 +349,7 @@ export function LearningMaterials() {
                 <p className="text-sm text-gray-500">{t("materials.supported_formats")}</p>
               </div>
               <label className="cursor-pointer">
-                <input type="file" multiple accept=".pdf,.xlsx,.pptx" onChange={handleFileInput} className="hidden" disabled={uploading} />
+                <input type="file" multiple accept=".pdf,.xlsx,.pptx,.png,.jpg,.jpeg" onChange={handleFileInput} className="hidden" disabled={uploading} />
                 <span className={`inline-flex items-center gap-2 px-8 py-3.5 bg-[#1A73E8] text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-100 ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#1557B0] hover:scale-105 active:scale-95'}`}>
                   <Upload className="w-5 h-5" />
                   {uploading ? t("auth.processing") : t("materials.upload_title")}
@@ -378,7 +385,7 @@ export function LearningMaterials() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-[#1A73E8]" />
+                        {["PNG", "JPG", "JPEG"].includes(material.fileType) ? <ImageIcon className="w-5 h-5 text-[#1A73E8]" /> : <FileText className="w-5 h-5 text-[#1A73E8]" />}
                       </div>
                       <span className="font-bold text-gray-900 group-hover:text-[#1A73E8] transition-colors">{material.name}</span>
                     </div>
@@ -389,6 +396,13 @@ export function LearningMaterials() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-600">{material.uploadedBy?.fullName || 'System'}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => setPreviewMaterial(material)} 
+                        className="p-2 text-gray-400 hover:text-[#1A73E8] hover:bg-blue-50 rounded-lg transition-all" 
+                        title={t("Preview")}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button onClick={() => handleDownload(material.id, material.originalName)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all" title={t("Download")}>
                         <Download className="w-4 h-4" />
                       </button>
@@ -410,6 +424,15 @@ export function LearningMaterials() {
           </table>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <MaterialPreviewModal 
+        isOpen={!!previewMaterial} 
+        onClose={() => setPreviewMaterial(null)} 
+        material={previewMaterial}
+        onDownload={handleDownload}
+      />
     </div>
   );
 }
+
