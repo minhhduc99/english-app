@@ -24,6 +24,16 @@ export function FlashcardManagement() {
     definition: "",
     example: "",
   });
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      setUserRole(user.role || "");
+    } catch {}
+  }, []);
+
+  const isManagement = ["ADMIN", "MANAGER", "TEACHER"].includes(userRole);
 
   const fetchVocabs = async () => {
     try {
@@ -114,7 +124,7 @@ export function FlashcardManagement() {
           <h1 className="text-2xl font-bold text-gray-900">{t("flashcard.management_title")}</h1>
           <p className="text-gray-500 mt-1">{t("flashcard.management_subtitle")}</p>
         </div>
-        {!isAdding && (
+        {isManagement && !isAdding && (
           <button
             onClick={() => setIsAdding(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#1A73E8] text-white rounded-xl font-bold hover:bg-[#1557B0] transition-all shadow-lg shadow-blue-100"
@@ -230,12 +240,16 @@ export function FlashcardManagement() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={() => handleEdit(vocab)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(vocab.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isManagement && (
+                          <button onClick={() => handleEdit(vocab)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                        {isManagement && (
+                          <button onClick={() => handleDelete(vocab.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -72,6 +72,18 @@ export function LessonContentModal({
   const [loading, setLoading] = useState(true);
   const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [userRole, setUserRole] = useState("");
+  
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      setUserRole(user.role || "");
+    } catch (e) {
+      setUserRole("");
+    }
+  }, []);
+
+  const isManagement = ["ADMIN", "MANAGER", "TEACHER"].includes(userRole);
   
   // Vocabulary Form State
   const [isAddingVocab, setIsAddingVocab] = useState(false);
@@ -265,7 +277,7 @@ export function LessonContentModal({
                   <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
                   Vocabulary List
                 </h3>
-                {!isAddingVocab && (
+                {isManagement && !isAddingVocab && (
                   <button
                     onClick={() => setIsAddingVocab(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all text-sm font-bold"
@@ -320,9 +332,11 @@ export function LessonContentModal({
                         <h4 className="font-black text-gray-900 text-lg group-hover:text-blue-600 transition-colors">{v.word}</h4>
                         <p className="text-xs font-mono text-gray-400 mt-0.5">{v.ipa || "/.../"}</p>
                       </div>
-                      <button onClick={() => handleDeleteVocab(v.id)} className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isManagement && (
+                        <button onClick={() => handleDeleteVocab(v.id)} className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 mt-3 line-clamp-2">{v.definition}</p>
                     {v.example && (
@@ -347,12 +361,14 @@ export function LessonContentModal({
                   <div className="w-1.5 h-6 bg-green-500 rounded-full" />
                   Lesson Materials
                 </h3>
-                <button
-                  onClick={() => setIsSelectMaterialOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all text-sm font-bold"
-                >
-                  <LinkIcon className="w-4 h-4" /> Link Materials
-                </button>
+                {isManagement && (
+                  <button
+                    onClick={() => setIsSelectMaterialOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all text-sm font-bold"
+                  >
+                    <LinkIcon className="w-4 h-4" /> Link Materials
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-3">
@@ -375,9 +391,11 @@ export function LessonContentModal({
                       <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg">
                         <ExternalLink className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isManagement && (
+                        <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -396,11 +414,13 @@ export function LessonContentModal({
                   <div className="w-1.5 h-6 bg-purple-500 rounded-full" />
                   Interactive Video
                 </h3>
-                <button
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 transition-all text-sm font-bold"
-                >
-                  <Plus className="w-4 h-4" /> Add Video
-                </button>
+                {isManagement && (
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 transition-all text-sm font-bold"
+                  >
+                    <Plus className="w-4 h-4" /> Add Video
+                  </button>
+                )}
               </div>
 
               <div className="bg-white p-6 border border-gray-100 rounded-[2rem] shadow-sm">
@@ -425,8 +445,8 @@ export function LessonContentModal({
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button className="text-gray-400 hover:text-blue-500 transition-colors">Edit</button>
-                          <button className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          {isManagement && <button className="text-gray-400 hover:text-blue-500 transition-colors">Edit</button>}
+                          {isManagement && <button className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>}
                         </div>
                       </div>
                     ))}

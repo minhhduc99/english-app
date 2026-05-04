@@ -46,4 +46,14 @@ export class GamesController {
   async verifyDailyChallenge(@Request() req, @Body() body: { id: string; answer: string }) {
     return this.gamesService.verifyDailyChallenge(req.user.id, body.id, body.answer);
   }
+
+  @Get('translation')
+  async getTranslationQuiz(@Query('count') count: number) {
+    return this.gamesService.generateTranslationQuiz(count || 5);
+  }
+
+  @Post('translation/verify')
+  async verifyTranslation(@Request() req, @Body() body: { id: string; answer: string; type: 'EN_VN' | 'VN_EN' }) {
+    return this.gamesService.verifyTranslation(req.user.id, body.id, body.answer, body.type);
+  }
 }

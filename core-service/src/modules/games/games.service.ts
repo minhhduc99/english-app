@@ -67,6 +67,24 @@ export class GamesService {
     return cards.sort(() => 0.5 - Math.random());
   }
 
+  async generateTranslationQuiz(count: number = 5) {
+    const allVocabs = await this.vocabulariesService.findAll();
+    const shuffled = allVocabs.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, count);
+
+    return selected.map(vocab => {
+      const type = Math.random() > 0.5 ? 'EN_VN' : 'VN_EN';
+      const question = type === 'EN_VN' ? vocab.word : vocab.definition;
+      const correctAnswer = type === 'EN_VN' ? vocab.definition : vocab.word;
+
+      return {
+        id: vocab.id,
+        type,
+        question,
+      };
+    });
+  }
+
   private scrambleWords(sentence: string): string[] {
     const words = sentence.split(' ');
     // Fisher-Yates shuffle
@@ -159,13 +177,21 @@ export class GamesService {
     return scrambled;
   }
 
+  private normalizeString(str: string): string {
+    return str
+      .toLowerCase()
+      .trim()
+      .replace(/[.,!?;:()\[\]{}]/g, '') // Remove punctuation
+      .replace(/\s+/g, ' '); // Normalize multiple spaces to a single space
+  }
+
   async verifyScramble(userId: string, id: string, answer: string) {
     const vocab = await this.vocabulariesService.findAll(); 
     const item = vocab.find(v => v.id === id);
     
     if (!item) return { success: false, message: 'Word not found' };
 
-    const isCorrect = item.word.toLowerCase() === answer.toLowerCase();
+    const isCorrect = this.normalizeString(item.word) === this.normalizeString(answer);
     
     let rewards = null;
     let stats = null;
@@ -179,7 +205,7 @@ export class GamesService {
 
     return {
       success: isCorrect,
-      correctWord: isCorrect ? item.word : null,
+      correctWord: item.word,
       message: isCorrect ? 'Correct!' : 'Try again!',
       rewards,
       stats,
@@ -192,11 +218,7 @@ export class GamesService {
     
     if (!item) return { success: false, message: 'Sentence not found' };
 
-    // Basic normalization: lowercase and trim
-    const normalizedAnswer = answer.toLowerCase().trim().replace(/[.,!?;]$/, '');
-    const normalizedCorrect = item.example.toLowerCase().trim().replace(/[.,!?;]$/, '');
-
-    const isCorrect = normalizedAnswer === normalizedCorrect;
+    const isCorrect = this.normalizeString(item.example) === this.normalizeString(answer);
 
     let rewards = null;
     let stats = null;
@@ -210,7 +232,7 @@ export class GamesService {
 
     return {
       success: isCorrect,
-      correctSentence: isCorrect ? item.example : null,
+      correctSentence: item.example,
       message: isCorrect ? 'Correct!' : 'Try again!',
       rewards,
       stats,
@@ -231,6 +253,34 @@ export class GamesService {
     return {
       success: true,
       rewards: { xp, coins },
+      stats,
+    };
+  }
+
+  async verifyTranslation(userId: string, id: string, answer: string, type: 'EN_VN' | 'VN_EN') {
+    const vocab = await this.vocabulariesService.findAll();
+    const item = vocab.find(v => v.id === id);
+    
+    if (!item) return { success: false, message: 'Word not found' };
+
+    const correctAnswer = type === 'EN_VN' ? item.definition : item.word;
+    const isCorrect = this.normalizeString(correctAnswer) === this.normalizeString(answer);
+
+    let rewards = null;
+    let stats = null;
+
+    if (isCorrect && userId) {
+      const xp = 25;
+      const coins = 8;
+      stats = await this.usersService.addRewards(userId, xp, coins, false);
+      rewards = { xp, coins };
+    }
+
+    return {
+      success: isCorrect,
+      correctAnswer: correctAnswer,
+      message: isCorrect ? 'Correct!' : 'Try again!',
+      rewards,
       stats,
     };
   }
