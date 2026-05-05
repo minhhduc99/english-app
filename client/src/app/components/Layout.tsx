@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   LayoutDashboard,
   BookOpen,
@@ -36,6 +37,7 @@ export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { t } = useLanguage();
+  const { getBackgroundClass } = useTheme();
   
   // Use user state instead of hardcoded
   const [user, setUser] = useState({ fullName: "Loading...", role: "..." });
@@ -112,6 +114,7 @@ export function Layout() {
           ],
         },
         { path: "/achievements", label: t("menu.achievements"), icon: Trophy },
+        { path: "/settings", label: t("menu.settings"), icon: Settings },
       ];
     }
     return [
@@ -184,7 +187,7 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-[#F8F9FA]">
+    <div className={`flex h-screen ${getBackgroundClass()}`}>
       {/* Sidebar */}
       <aside
         className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ${

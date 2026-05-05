@@ -118,8 +118,9 @@ Management of global resources (PDF, DOCX, etc).
 - **Delete:** `DELETE /api/materials/:id`
 
 ### 7.3. Vocabularies & Flashcards API
-- **List All:** `GET /api/vocabularies`
-- **Create:** `POST /api/vocabularies` (Teacher/Admin only)
+- **List All:** `GET /api/vocabularies` (Supports `?topic=` filter)
+- **Topics:** `GET /api/vocabularies/topics` - Returns distinct topics
+- **Create:** `POST /api/vocabularies` (Teacher/Admin only) - Supports `topic` and `imageUrl`
 - **Delete:** `DELETE /api/vocabularies/:id`
 
 ### 7.4. English Games API

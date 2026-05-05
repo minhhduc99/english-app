@@ -44,12 +44,12 @@ export class MaterialsController {
         },
       }),
       fileFilter: (req, file, cb) => {
-        const allowedExtensions = ['.pdf', '.xlsx', '.pptx'];
+        const allowedExtensions = ['.pdf', '.xlsx', '.pptx', '.png', '.jpg', '.jpeg'];
         const ext = path.extname(file.originalname).toLowerCase();
         if (allowedExtensions.includes(ext)) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('Only PDF, XLSX, and PPTX files are allowed'), false);
+          cb(new BadRequestException('Only PDF, XLSX, PPTX and Image files are allowed'), false);
         }
       },
       limits: {

@@ -16,6 +16,22 @@ export class VocabulariesService {
     });
   }
 
+  async findByTopic(topic: string) {
+    return await this.vocabularyRepository.find({
+      where: { topic },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findTopics() {
+    const query = this.vocabularyRepository
+      .createQueryBuilder('vocabulary')
+      .select('DISTINCT vocabulary.topic', 'topic')
+      .where('vocabulary.topic IS NOT NULL');
+    const result = await query.getRawMany();
+    return result.map(r => r.topic);
+  }
+
   async findByLesson(lessonId: string) {
     return await this.vocabularyRepository.find({
       where: { lessonId },

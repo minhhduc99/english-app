@@ -25,6 +25,12 @@ export class Vocabulary {
   @Column({ nullable: true })
   example: string;
 
+  @Column({ nullable: true })
+  topic: string;
+
+  @Column({ nullable: true })
+  imageUrl: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

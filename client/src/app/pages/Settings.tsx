@@ -2,11 +2,22 @@ import { useState } from "react";
 import { Brain, Sparkles, Zap, Users, Shield, Palette, Image, Sun, Moon, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useTheme, backgrounds } from "../contexts/ThemeContext";
 
 export function Settings() {
   const { t } = useLanguage();
-  const [selectedTheme, setSelectedTheme] = useState("light");
-  const [selectedBackground, setSelectedBackground] = useState("default");
+  const { background, setBackground, theme, setTheme } = useTheme();
+  
+  const user = (() => {
+    try {
+      const cached = localStorage.getItem("user");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const isAdmin = user?.role === "ADMIN";
+  const isStudent = user?.role === "STUDENT";
 
   const aiFeatures = [
     {
@@ -66,14 +77,6 @@ export function Settings() {
     { id: "auto", name: "Auto", icon: Monitor, preview: "bg-gradient-to-r from-white to-gray-900" },
   ];
 
-  const backgrounds = [
-    { id: "default", name: "Default", preview: "bg-[#F8F9FA]" },
-    { id: "blue", name: "Ocean Blue", preview: "bg-gradient-to-br from-blue-50 to-blue-100" },
-    { id: "green", name: "Fresh Green", preview: "bg-gradient-to-br from-green-50 to-green-100" },
-    { id: "purple", name: "Royal Purple", preview: "bg-gradient-to-br from-purple-50 to-purple-100" },
-    { id: "gradient", name: "Sunset", preview: "bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50" },
-  ];
-
   const handleSaveSettings = () => {
     toast.success("Settings saved successfully");
   };
@@ -86,7 +89,8 @@ export function Settings() {
       </div>
 
       {/* Roles & Permissions Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      {isAdmin && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#E8F0FE] rounded-lg flex items-center justify-center">
@@ -135,6 +139,7 @@ export function Settings() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Theme Settings */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -149,27 +154,27 @@ export function Settings() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {themes.map((theme) => (
+          {themes.map((thm) => (
             <button
-              key={theme.id}
+              key={thm.id}
               onClick={() => {
-                setSelectedTheme(theme.id);
-                toast.success(`${theme.name} theme selected`);
+                setTheme(thm.id as any);
+                toast.success(`${thm.name} theme selected`);
               }}
               className={`relative p-4 border-2 rounded-xl transition-all ${
-                selectedTheme === theme.id
-                  ? "border-[#1A73E8] bg-[#E8F0FE]"
-                  : "border-gray-200 hover:border-gray-300"
+                theme === thm.id
+                  ? "border-[#1A73E8] bg-[#E8F0FE] dark:bg-[#1A73E8]/20"
+                  : "border-gray-200 hover:border-gray-300 dark:border-gray-700"
               }`}
             >
               <div className="flex flex-col items-center gap-3">
-                <div className={`w-full h-24 ${theme.preview} rounded-lg border border-gray-200`}></div>
+                <div className={`w-full h-24 ${thm.preview} rounded-lg border border-gray-200 dark:border-gray-700`}></div>
                 <div className="flex items-center gap-2">
-                  <theme.icon className="w-5 h-5 text-gray-700" />
-                  <span className="font-medium text-gray-900">{theme.name}</span>
+                  <thm.icon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{thm.name}</span>
                 </div>
               </div>
-              {selectedTheme === theme.id && (
+              {theme === thm.id && (
                 <div className="absolute top-2 right-2 w-6 h-6 bg-[#1A73E8] rounded-full flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -197,25 +202,25 @@ export function Settings() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {backgrounds.map((background) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {backgrounds.map((bg) => (
             <button
-              key={background.id}
+              key={bg.id}
               onClick={() => {
-                setSelectedBackground(background.id);
-                toast.success(`${background.name} background selected`);
+                setBackground(bg.id as any);
+                toast.success(`${bg.name} background selected`);
               }}
               className={`relative p-3 border-2 rounded-xl transition-all ${
-                selectedBackground === background.id
+                background === bg.id
                   ? "border-[#1A73E8]"
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
               <div className="flex flex-col items-center gap-2">
-                <div className={`w-full h-20 ${background.preview} rounded-lg border border-gray-300`}></div>
-                <span className="text-sm font-medium text-gray-900 text-center">{background.name}</span>
+                <div className={`w-full h-20 ${bg.preview} rounded-lg border border-gray-300`}></div>
+                <span className="text-sm font-medium text-gray-900 text-center">{bg.name}</span>
               </div>
-              {selectedBackground === background.id && (
+              {background === bg.id && (
                 <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#1A73E8] rounded-full flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -232,7 +237,9 @@ export function Settings() {
       </div>
 
       {/* AI Features */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      {!isStudent && (
+        <>
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-[#E8F0FE] rounded-lg flex items-center justify-center">
             <Brain className="w-5 h-5 text-[#1A73E8]" />
@@ -316,6 +323,8 @@ export function Settings() {
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {/* Save Button */}
       <div className="flex items-center justify-end gap-3">

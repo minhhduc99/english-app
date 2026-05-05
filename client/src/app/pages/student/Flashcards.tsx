@@ -1,25 +1,54 @@
-import { Volume2, ChevronLeft, ChevronRight, RotateCw } from "lucide-react";
+import { Volume2, ChevronLeft, ChevronRight, RotateCw, Shuffle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
 
 export function Flashcards() {
   const [flashcards, setFlashcards] = useState<any[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<string>("All");
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
   useEffect(() => {
-    const fetchFlashcards = async () => {
+    const fetchTopics = async () => {
       try {
-        const res = await fetch("/api/vocabularies", {
+        const res = await fetch("/api/vocabularies/topics", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
         if (res.ok) {
           const data = await res.json();
+          setTopics(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch topics:", error);
+      }
+    };
+    fetchTopics();
+  }, []);
+
+  useEffect(() => {
+    const fetchFlashcards = async () => {
+      setLoading(true);
+      try {
+        let url = "/api/vocabularies";
+        if (selectedTopic !== "All") {
+          url += `?topic=${encodeURIComponent(selectedTopic)}`;
+        }
+        
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        if (res.ok) {
+          let data = await res.json();
           setFlashcards(data);
+          setCurrentCard(0);
+          setIsFlipped(false);
         }
       } catch (error) {
         console.error("Failed to fetch flashcards:", error);
@@ -28,7 +57,7 @@ export function Flashcards() {
       }
     };
     fetchFlashcards();
-  }, []);
+  }, [selectedTopic]);
 
   const handleNext = () => {
     if (flashcards.length === 0) return;
@@ -59,25 +88,52 @@ export function Flashcards() {
   }
 
   const card = flashcards[currentCard];
+  const progressPercent = currentCard === 0 ? 0 : flashcards.length > 1 ? Math.round((currentCard / (flashcards.length - 1)) * 100) : 100;
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-semibold text-[#111827] mb-2">{t("learning_path.flashcards")}</h1>
-        <p className="text-[#6B7280]">{t("flashcard.review_subtitle")}</p>
+      <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold text-[#111827] mb-2">{t("learning_path.flashcards")}</h1>
+          <p className="text-[#6B7280]">{t("flashcard.review_subtitle")}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-700">{t("flashcard.topic") || "Topic"}:</span>
+          <select
+            value={selectedTopic}
+            onChange={(e) => setSelectedTopic(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A73E8] outline-none transition-all font-medium min-w-[150px]"
+          >
+            <option value="All">{t("flashcard.all_topics") || "All Topics"}</option>
+            {topics.map(t => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              setFlashcards(prev => [...prev].sort(() => Math.random() - 0.5));
+              setCurrentCard(0);
+              setIsFlipped(false);
+            }}
+            className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-[#F3F4F6] hover:text-[#1A73E8] text-gray-600 transition-all shadow-sm group"
+            title="Shuffle Flashcards"
+          >
+            <Shuffle className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+          </button>
+        </div>
       </div>
 
       {/* Progress Indicator */}
       <div className="mb-8">
         <div className="flex items-center justify-between text-sm text-[#6B7280] mb-2">
           <span>{t("flashcard.card")} {currentCard + 1} / {flashcards.length}</span>
-          <span>{Math.round(((currentCard + 1) / flashcards.length) * 100)}% {t("flashcard.complete")}</span>
+          <span>{progressPercent}% {t("flashcard.complete")}</span>
         </div>
         <div className="w-full h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
           <div
             className="h-full bg-[#1A73E8] transition-all duration-300"
-            style={{ width: `${((currentCard + 1) / flashcards.length) * 100}%` }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
@@ -103,9 +159,12 @@ export function Flashcards() {
               style={{ backfaceVisibility: "hidden" }}
             >
               <div className="flex flex-col items-center justify-center h-full text-center">
+                {card.imageUrl && (
+                  <img src={card.imageUrl} alt={card.word} className="w-32 h-32 object-cover rounded-2xl mb-6 shadow-sm border border-gray-100" />
+                )}
                 <div className="text-6xl font-bold text-[#1A73E8] mb-4">{card.word}</div>
-                <div className="text-xl text-[#6B7280] mb-8 font-mono">{card.ipa}</div>
-                <div className="text-sm text-[#9CA3AF] uppercase tracking-widest">{t("materials.drop_hint")}</div>
+                <div className="text-xl text-[#6B7280] mb-6 font-mono">{card.ipa}</div>
+                <div className="text-sm text-[#9CA3AF] uppercase tracking-widest">{t("flashcard.flip")}</div>
               </div>
             </div>
 

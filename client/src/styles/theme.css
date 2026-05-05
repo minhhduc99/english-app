@@ -179,3 +179,36 @@
     line-height: 1.5;
   }
 }
+
+/* Global Dark Mode Overrides for Hardcoded Colors */
+.dark .bg-white {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border-color: var(--border) !important;
+}
+
+.dark .bg-gray-50, .dark .bg-\[\#F8F9FA\] {
+  background-color: var(--muted) !important;
+}
+
+.dark .text-gray-900, .dark .text-\[\#111827\] {
+  color: var(--foreground) !important;
+}
+
+.dark .text-gray-700, .dark .text-gray-600, .dark .text-gray-500, .dark .text-\[\#6B7280\] {
+  color: var(--muted-foreground) !important;
+}
+
+.dark .border-gray-200, .dark .border-gray-100, .dark .border-\[\#E5E7EB\] {
+  border-color: var(--border) !important;
+}
+
+.dark .bg-\[\#E8F0FE\] {
+  background-color: rgba(26, 115, 232, 0.15) !important;
+}
+
+.dark select, .dark input {
+  background-color: var(--input-background) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
