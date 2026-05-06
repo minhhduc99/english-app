@@ -15,6 +15,7 @@ import { MaterialsModule } from './modules/materials/materials.module';
 import { VocabulariesModule } from './modules/vocabularies/vocabularies.module';
 import { GamesModule } from './modules/games/games.module';
 import { TestsModule } from './modules/tests/tests.module';
+import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { TestsModule } from './modules/tests/tests.module';
     VocabulariesModule,
     GamesModule,
     TestsModule,
+    AiChatModule,
   ],
 })
 export class AppModule {}

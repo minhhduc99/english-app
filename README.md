@@ -143,6 +143,10 @@ The system utilizes a prestige-based leveling engine to drive student engagement
     - Awards random **XP (50-100)** and **Coins (10-30)**.
     - Updates `lastDailyGameAt` in `student_stats`.
 
+### 7.6. AI Learning Services API (AI Microservice)
+The standalone AI microservice powered by FastApi and Groq API.
+- **Chat Tutor:** `POST /api/v1/chat/tutor` - Allows students to converse with an AI tutor (supports context history and English/Vietnamese).
+
 ## 8. Localization (i18n)
 The system supports full real-time language switching:
 - **Languages**: English (`en`), Vietnamese (`vi`).
