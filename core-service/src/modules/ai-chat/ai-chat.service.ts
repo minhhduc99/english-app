@@ -1,22 +1,28 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class AiChatService {
   private readonly aiServiceUrl: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly settingsService: SettingsService,
+  ) {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8000');
   }
 
   async chatWithTutor(message: string, history: any[], language: string = 'en') {
     try {
+      const systemPrompt = await this.settingsService.getSetting('AI_SYSTEM_PROMPT');
+      
       const response = await fetch(`${this.aiServiceUrl}/api/v1/chat/tutor`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message, history, language }),
+        body: JSON.stringify({ message, history, language, system_prompt: systemPrompt || undefined }),
       });
 
       if (!response.ok) {

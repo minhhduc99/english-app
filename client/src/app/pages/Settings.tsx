@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Brain, Sparkles, Zap, Users, Shield, Palette, Image, Sun, Moon, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -77,8 +77,82 @@ export function Settings() {
     { id: "auto", name: "Auto", icon: Monitor, preview: "bg-gradient-to-r from-white to-gray-900" },
   ];
 
+  const [systemPrompt, setSystemPrompt] = useState<string>("");
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [isSyncingAI, setIsSyncingAI] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin) {
+      const fetchSystemPrompt = async () => {
+        try {
+          const response = await fetch("/api/settings/AI_SYSTEM_PROMPT", {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.value) {
+              setSystemPrompt(data.value);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch AI System Prompt:", error);
+        }
+      };
+      fetchSystemPrompt();
+    }
+  }, [isAdmin]);
+
+  const handleSaveSystemPrompt = async () => {
+    try {
+      setIsSavingPrompt(true);
+      const response = await fetch("/api/settings/AI_SYSTEM_PROMPT", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ value: systemPrompt }),
+      });
+
+      if (response.ok) {
+        toast.success(t("AI System Prompt saved successfully"));
+      } else {
+        throw new Error("Failed to save");
+      }
+    } catch (error) {
+      toast.error(t("Failed to save AI System Prompt"));
+      console.error(error);
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  };
+
+  const handleSyncAI = async () => {
+    try {
+      setIsSyncingAI(true);
+      const res = await fetch("/api/vocabularies/sync-ai", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (res.ok) {
+        toast.success(t("flashcard.sync_success") || "Synced successfully");
+      } else {
+        toast.error(t("flashcard.sync_error") || "Failed to sync");
+      }
+    } catch (error) {
+      toast.error(t("flashcard.sync_error") || "Error syncing");
+    } finally {
+      setIsSyncingAI(false);
+    }
+  };
+
   const handleSaveSettings = () => {
-    toast.success("Settings saved successfully");
+    toast.success(t("Settings saved successfully"));
   };
 
   return (
@@ -90,6 +164,7 @@ export function Settings() {
 
       {/* Roles & Permissions Section */}
       {isAdmin && (
+        <>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -139,6 +214,74 @@ export function Settings() {
           ))}
         </div>
       </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-[#E8F0FE] rounded-lg flex items-center justify-center">
+            <Brain className="w-5 h-5 text-[#1A73E8]" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{t("System AI Prompt (Tutor)")}</h3>
+            <p className="text-sm text-gray-500">{t("Configure the root behavior instructions for the AI Tutor microservice")}</p>
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          <textarea
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
+            className="w-full h-48 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1A73E8] focus:border-transparent resize-none"
+            placeholder={t("Enter system prompt for AI Tutor...")}
+          ></textarea>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setSystemPrompt("You are an expert English Tutor API. Your SOLE purpose is to help the user practice English using ONLY the vocabulary provided in the system context.\n\nRULES:\n1. DO NOT answer general knowledge questions.\n2. DO NOT engage in conversations outside of English learning.\n3. ONLY use and explain the vocabulary words provided in the context.\n4. If the user asks something unrelated, gently steer them back to practicing their vocabulary.\n5. If the user speaks Vietnamese, you may explain the vocabulary in Vietnamese, but encourage them to practice in English.")}
+              className="px-4 py-2 text-[#1A73E8] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors font-medium"
+            >
+              {t("Load Sample")}
+            </button>
+            <button
+              onClick={handleSaveSystemPrompt}
+              disabled={isSavingPrompt}
+              className="px-4 py-2 bg-[#1A73E8] text-white rounded-lg hover:bg-[#1557B0] transition-colors disabled:opacity-50"
+            >
+              {isSavingPrompt ? t("Saving...") : t("Save System Prompt")}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+            <Brain className="w-5 h-5 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{t("AI Knowledge Synchronization")}</h3>
+            <p className="text-sm text-gray-500">{t("Manually sync system learning materials with the AI Tutor")}</p>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg">
+          <div>
+            <p className="font-medium text-gray-900">{t("Vocabulary Database")}</p>
+            <p className="text-sm text-gray-500">{t("Push latest vocabulary definitions and examples to AI context")}</p>
+          </div>
+          <button
+            onClick={handleSyncAI}
+            disabled={isSyncingAI}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              isSyncingAI 
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+            }`}
+          >
+            <Brain className={`w-4 h-4 ${isSyncingAI ? 'animate-pulse' : ''}`} />
+            {isSyncingAI ? t("Syncing...") : t("Sync Now")}
+          </button>
+        </div>
+      </div>
+      </>
       )}
 
       {/* Theme Settings */}

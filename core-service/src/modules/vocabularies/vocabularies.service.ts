@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Vocabulary } from './entities/vocabulary.entity';
 
 @Injectable()
 export class VocabulariesService {
+  private readonly logger = new Logger(VocabulariesService.name);
+
   constructor(
     @InjectRepository(Vocabulary)
     private readonly vocabularyRepository: Repository<Vocabulary>,
+    private readonly configService: ConfigService,
   ) {}
 
   async findAll() {
@@ -61,5 +65,39 @@ export class VocabulariesService {
 
   async countAll() {
     return await this.vocabularyRepository.count();
+  }
+
+  async syncWithAI() {
+    try {
+      const vocabularies = await this.findAll();
+      const aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8000');
+      
+      const payload = {
+        vocabularies: vocabularies.map(v => ({
+          word: v.word,
+          definition: v.definition,
+          example: v.example,
+        }))
+      };
+
+      const response = await fetch(`${aiServiceUrl}/api/v1/knowledge/train/vocabularies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI Service returned ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      this.logger.log(`Successfully synced ${result.count} vocabularies with AI service.`);
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to sync vocabularies with AI service', error);
+      throw error;
+    }
   }
 }

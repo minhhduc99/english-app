@@ -122,6 +122,7 @@ Management of global resources (PDF, DOCX, etc).
 - **Topics:** `GET /api/vocabularies/topics` - Returns distinct topics
 - **Create:** `POST /api/vocabularies` (Teacher/Admin only) - Supports `topic` and `imageUrl`
 - **Delete:** `DELETE /api/vocabularies/:id`
+- **Sync AI:** `POST /api/vocabularies/sync-ai` (Admin/Manager only) - Syncs all vocabularies to the AI Microservice for contextual awareness.
 
 ### 7.4. English Games API
 - **Word Scramble:** `GET /api/games/scramble?count=5`
@@ -146,6 +147,7 @@ The system utilizes a prestige-based leveling engine to drive student engagement
 ### 7.6. AI Learning Services API (AI Microservice)
 The standalone AI microservice powered by FastApi and Groq API.
 - **Chat Tutor:** `POST /api/v1/chat/tutor` - Allows students to converse with an AI tutor (supports context history and English/Vietnamese).
+- **Train Knowledge:** `POST /api/v1/knowledge/train/vocabularies` - Accepts vocabulary data to build an in-memory RAG context, enhancing the AI Tutor's responses with course-specific words.
 
 ## 8. Localization (i18n)
 The system supports full real-time language switching:
@@ -153,7 +155,11 @@ The system supports full real-time language switching:
 - **Scope**: All UI labels, menu titles, instructional text, feedback messages, and game roadmaps.
 - **Storage**: User preference persisted via `localStorage`.
 
-## 9. Running the Services (Development)
+## 9. AI Configuration & Prompts
+- **Admin Setup**: System prompts for the AI Tutor are dynamically configurable from the Admin Dashboard (`Settings` page).
+- **Execution**: Configurations are fetched by `core-service` and passed dynamically to `ai-service`, avoiding hardcoded behavior and ensuring system modularity.
+
+## 10. Running the Services (Development)
 
 ### 9.1. Infrastructure
 ```bash

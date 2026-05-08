@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X, Brain } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -41,6 +41,7 @@ export function FlashcardManagement() {
   }, []);
 
   const isManagement = ["ADMIN", "MANAGER", "TEACHER"].includes(userRole);
+  const isAdmin = userRole === "ADMIN";
 
   const fetchVocabs = async () => {
     try {
@@ -148,6 +149,7 @@ export function FlashcardManagement() {
     }
   };
 
+
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -166,6 +168,7 @@ export function FlashcardManagement() {
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
+
           {isManagement && !isAdding && (
             <button
               onClick={() => setIsAdding(true)}

@@ -16,6 +16,7 @@ import { VocabulariesModule } from './modules/vocabularies/vocabularies.module';
 import { GamesModule } from './modules/games/games.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
     GamesModule,
     TestsModule,
     AiChatModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

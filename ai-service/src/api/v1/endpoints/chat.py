@@ -12,7 +12,8 @@ async def chat_with_tutor(request: ChatRequest):
         
         reply = await ai_tutor.get_chat_response(
             message=request.message,
-            conversation_history=history
+            conversation_history=history,
+            system_prompt=request.system_prompt
         )
         return ChatResponse(reply=reply)
     except Exception as e:

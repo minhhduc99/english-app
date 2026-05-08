@@ -11,7 +11,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 @Controller('vocabularies')
 @UseGuards(AuthGuard, RolesGuard)
 export class VocabulariesController {
-  constructor(private readonly vocabulariesService: VocabulariesService) {}
+  constructor(private readonly vocabulariesService: VocabulariesService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all vocabularies' })
@@ -54,6 +54,13 @@ export class VocabulariesController {
   @ApiOperation({ summary: 'Delete vocabulary - Teacher/Manager/Admin only' })
   remove(@Param('id') id: string) {
     return this.vocabulariesService.remove(id);
+  }
+
+  @Post('sync-ai')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Sync all vocabularies with AI Service - Admin only' })
+  syncWithAI() {
+    return this.vocabulariesService.syncWithAI();
   }
 }
 

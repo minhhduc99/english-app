@@ -1,5 +1,6 @@
 from groq import Groq
 from src.core.config import settings
+from src.services.rag_engine import rag_engine
 
 client = Groq(api_key=settings.GROQ_API_KEY)
 
@@ -12,8 +13,14 @@ You should adjust your explanations based on the student's request.
 You are capable of speaking both English and Vietnamese. If the user asks in Vietnamese, you can explain in Vietnamese but provide English examples. If the user asks in English, keep the conversation in English.
 Keep your answers concise and encouraging."""
 
-    async def get_chat_response(self, message: str, conversation_history: list = None) -> str:
-        messages = [{"role": "system", "content": self.system_prompt}]
+    async def get_chat_response(self, message: str, conversation_history: list = None, system_prompt: str = None) -> str:
+        base_prompt = system_prompt if system_prompt else self.system_prompt
+        
+        vocab_context = rag_engine.get_vocabulary_context()
+        if vocab_context:
+            base_prompt += f"\n\n{vocab_context}"
+
+        messages = [{"role": "system", "content": base_prompt}]
         
         if conversation_history:
             messages.extend(conversation_history)
