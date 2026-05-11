@@ -9,8 +9,8 @@ export class AiChatController {
 
   @Post('tutor')
   async chatWithTutor(
-    @Body() body: { message: string; history?: any[]; language?: string },
+    @Body() body: { message: string; history?: any[]; language?: string; persona?: string; module?: string },
   ) {
-    return this.aiChatService.chatWithTutor(body.message, body.history || [], body.language || 'en');
+    return this.aiChatService.chatWithTutor(body.message, body.history || [], body.language || 'en', body.persona, body.module);
   }
 }

@@ -13,7 +13,7 @@ export class AiChatService {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8000');
   }
 
-  async chatWithTutor(message: string, history: any[], language: string = 'en') {
+  async chatWithTutor(message: string, history: any[], language: string = 'en', persona?: string, module?: string) {
     try {
       const systemPrompt = await this.settingsService.getSetting('AI_SYSTEM_PROMPT');
       
@@ -22,7 +22,7 @@ export class AiChatService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message, history, language, system_prompt: systemPrompt || undefined }),
+        body: JSON.stringify({ message, history, language, system_prompt: systemPrompt || undefined, persona, module }),
       });
 
       if (!response.ok) {

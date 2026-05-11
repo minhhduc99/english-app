@@ -1,6 +1,13 @@
-import { Mic, Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Mic, Send, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useNavigate } from "react-router";
+
+const AI_FRIENDS = [
+  { id: 'emma', name: 'Emma', role: 'Friendly Tutor', emoji: '👩🏼', color: 'from-pink-500 to-rose-400' },
+  { id: 'alex', name: 'Alex', role: 'Strict Teacher', emoji: '👨🏻‍🏫', color: 'from-blue-600 to-indigo-700' },
+  { id: 'mia', name: 'Mia', role: 'Casual Buddy', emoji: '👧🏻', color: 'from-amber-400 to-orange-500' }
+];
 
 const targetWords = [
   { word: "Hello", pronounced: true },
@@ -17,10 +24,23 @@ interface ChatMessage {
   time: string;
 }
 
-export function AISpeaking() {
+const renderMessage = (text: string) => {
+  const parts = text.split(/(\*\*[\s\S]*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
+
+export function SpeakingPractice() {
+  const [selectedFriend, setSelectedFriend] = useState<any>(null);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
@@ -69,7 +89,9 @@ export function AISpeaking() {
         body: JSON.stringify({
           message: userMessage,
           history: apiHistory,
-          language: language === "en" ? "en" : "vi"
+          language: language === "en" ? "en" : "vi",
+          persona: `${selectedFriend.name} - ${selectedFriend.role}`,
+          module: "speaking"
         })
       });
 
@@ -103,11 +125,85 @@ export function AISpeaking() {
     }
   };
 
+  const toggleListening = () => {
+    if (isListening) {
+      setIsListening(false);
+    } else {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Your browser does not support Speech Recognition.");
+        return;
+      }
+      
+      const recognition = new SpeechRecognition();
+      recognition.lang = language === "vi" ? "vi-VN" : "en-US";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputText(prev => prev ? prev + " " + transcript : transcript);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognition.start();
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSendMessage();
     }
   };
+
+  if (!selectedFriend) {
+    return (
+      <div className="h-full bg-[#F8FBFF] p-6 md:p-10 overflow-y-auto">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={() => navigate('/ai-learning')} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 border border-gray-100">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{t("ai_learning.choose_friend")}</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {AI_FRIENDS.map(friend => (
+              <div 
+                key={friend.id}
+                onClick={() => {
+                  setSelectedFriend(friend);
+                  setChatHistory([{
+                    sender: "ai",
+                    message: `Hi! I'm ${friend.name}, your ${friend.role}. Let's practice speaking English!`,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  }]);
+                }}
+                className="bg-white rounded-3xl p-8 cursor-pointer border-2 border-transparent hover:border-blue-500 shadow-sm hover:shadow-xl transition-all duration-300 text-center flex flex-col items-center group"
+              >
+                <div className={`w-28 h-28 rounded-full bg-gradient-to-br ${friend.color} flex items-center justify-center text-5xl mb-6 group-hover:scale-110 transition-transform duration-500 shadow-md`}>
+                  {friend.emoji}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">{friend.name}</h3>
+                <p className="text-gray-500 mt-2 font-medium">{friend.role}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col md:flex-row bg-[#F8FBFF]">
@@ -116,11 +212,11 @@ export function AISpeaking() {
         {/* AI Character Header */}
         <div className="bg-white border-b border-[#E5E7EB] p-4 md:p-6 shadow-sm z-10">
           <div className="flex items-center gap-4 max-w-4xl mx-auto">
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#1A73E8] to-[#4A90E2] flex items-center justify-center text-white text-xl md:text-2xl font-bold shadow-md">
-              AI
+            <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${selectedFriend.color} flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-md`}>
+              {selectedFriend.emoji}
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-semibold text-[#111827]">{t("AI Speaking Coach")}</h2>
+              <h2 className="text-lg md:text-xl font-semibold text-[#111827]">{selectedFriend.name} - {selectedFriend.role}</h2>
               <div className="flex items-center gap-2 text-xs md:text-sm text-[#22C55E] font-medium">
                 <div className="w-2 h-2 bg-[#22C55E] rounded-full animate-pulse"></div>
                 {t("Ready to help")}
@@ -144,7 +240,7 @@ export function AISpeaking() {
                       : "bg-white border border-[#E5E7EB] text-[#111827] shadow-sm rounded-bl-none"
                   } rounded-2xl px-5 py-3.5`}
                 >
-                  <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{chat.message}</div>
+                  <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{renderMessage(chat.message)}</div>
                   <div
                     className={`text-[11px] mt-1.5 ${
                       chat.sender === "user" ? "text-blue-100" : "text-[#9CA3AF]"
@@ -183,6 +279,19 @@ export function AISpeaking() {
                 disabled={isLoading}
               />
             </div>
+            
+            {/* Microphone Button */}
+            <button
+              onClick={toggleListening}
+              className={`w-12 h-12 md:w-14 md:h-14 shrink-0 rounded-full flex items-center justify-center transition-all ${
+                isListening
+                  ? "bg-red-500 text-white animate-pulse shadow-md"
+                  : "bg-white border-2 border-[#E5E7EB] text-[#6B7280] hover:text-[#1A73E8] hover:border-[#1A73E8]"
+              }`}
+              title="Talk to AI"
+            >
+              <Mic className={`w-5 h-5 md:w-6 md:h-6 ${isListening ? "animate-bounce" : ""}`} />
+            </button>
             
             {/* Send Button */}
             <button

@@ -99,7 +99,7 @@ export function Layout() {
       return [
         { path: "/", label: t("menu.home"), icon: Home },
         { path: "/courses", label: t("menu.my_courses"), icon: BookOpen },
-        { path: "/ai-speaking", label: t("menu.ai_speaking"), icon: Mic },
+        { path: "/ai-learning", label: t("menu.ai_learning"), icon: Mic },
         {
           path: "/learning-materials",
           label: t("menu.learning_materials"),
@@ -166,7 +166,7 @@ export function Layout() {
     if (location.pathname === "/settings") return t("menu.settings");
     if (location.pathname === "/user-management") return t("menu.user_management");
     if (location.pathname === "/learning-path") return t("menu.learning_path");
-    if (location.pathname === "/ai-speaking") return t("menu.ai_speaking");
+    if (location.pathname.startsWith("/ai-learning")) return t("menu.ai_learning");
     if (location.pathname === "/flashcards") return t("menu.flashcards");
     if (location.pathname === "/achievements") return t("menu.achievements");
     return null;

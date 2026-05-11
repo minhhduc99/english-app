@@ -146,7 +146,7 @@ The system utilizes a prestige-based leveling engine to drive student engagement
 
 ### 7.6. AI Learning Services API (AI Microservice)
 The standalone AI microservice powered by FastApi and Groq API.
-- **Chat Tutor:** `POST /api/v1/chat/tutor` - Allows students to converse with an AI tutor (supports context history and English/Vietnamese).
+- **AI Learning Hub:** `POST /api/v1/chat/tutor` - Allows students to practice Speaking and Writing with customizable AI personas.
 - **Train Knowledge:** `POST /api/v1/knowledge/train/vocabularies` - Accepts vocabulary data to build an in-memory RAG context, enhancing the AI Tutor's responses with course-specific words.
 
 ## 8. Localization (i18n)

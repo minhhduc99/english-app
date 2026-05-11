@@ -11,10 +11,22 @@ class AITutorService:
 Your goal is to help students learn English effectively.
 You should adjust your explanations based on the student's request.
 You are capable of speaking both English and Vietnamese. If the user asks in Vietnamese, you can explain in Vietnamese but provide English examples. If the user asks in English, keep the conversation in English.
-Keep your answers concise and encouraging."""
+CRITICAL LANGUAGE RULES:
+1. NEVER mix English and Vietnamese in the same sentence (e.g., do NOT say "This planet, hành tinh, is big").
+2. Example sentences and corrected sentences MUST be fully in English.
+3. If you provide a Vietnamese translation, it MUST be placed on a new line below the English sentence.
+4. Keep your answers concise and encouraging."""
 
-    async def get_chat_response(self, message: str, conversation_history: list = None, system_prompt: str = None) -> str:
+    async def get_chat_response(self, message: str, conversation_history: list = None, system_prompt: str = None, persona: str = None, module: str = None) -> str:
         base_prompt = system_prompt if system_prompt else self.system_prompt
+        
+        if persona:
+            base_prompt += f"\n\nYou must strictly act as the persona: {persona}. Your tone and vocabulary should match this persona."
+            
+        if module == 'writing':
+            base_prompt += "\n\nThis is a WRITING PRACTICE session. Focus on correcting the user's grammar, vocabulary, and sentence structure. Provide constructive feedback on how they can improve their writing.\n\nCRITICAL FORMATTING RULE: Whenever you provide a corrected sentence, an example paragraph, or the final polished version of their text, you MUST wrap that specific English text in double asterisks to make it bold. Example: **This is the corrected sentence.** Do not use quotes, use **."
+        elif module == 'speaking':
+            base_prompt += "\n\nThis is a SPEAKING PRACTICE session. Focus on conversational fluency. Keep your replies relatively short so the user can speak more.\n\nCRITICAL FORMATTING RULE: If you correct the user's sentence or provide an example sentence, you MUST wrap that specific English sentence in double asterisks to make it bold. Example: **This is the corrected sentence.** Do not use quotes, use **."
         
         vocab_context = rag_engine.get_vocabulary_context()
         if vocab_context:

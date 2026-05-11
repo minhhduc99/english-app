@@ -10,6 +10,8 @@ class ChatRequest(BaseModel):
     history: Optional[List[Message]] = []
     language: Optional[str] = "en"  # "en" or "vi"
     system_prompt: Optional[str] = None
+    persona: Optional[str] = None
+    module: Optional[str] = None
 
 class ChatResponse(BaseModel):
     reply: str
