@@ -5,7 +5,7 @@ from src.services.ai_tutor import AITutorService
 router = APIRouter()
 ai_tutor = AITutorService()
 
-@router.post("/tutor", response_model=ChatResponse)
+@router.post("/tutor", response_model=ChatResponse, tags=["AI Chat"], summary="Interact with the AI English Tutor")
 async def chat_with_tutor(request: ChatRequest):
     try:
         history = [{"role": msg.role, "content": msg.content} for msg in request.history] if request.history else []

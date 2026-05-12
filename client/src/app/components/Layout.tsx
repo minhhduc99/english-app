@@ -27,6 +27,7 @@ import {
   ShoppingBag,
   Coins,
   Star,
+  ScanLine,
 } from "lucide-react";
 
 export function Layout() {
@@ -150,6 +151,8 @@ export function Layout() {
         }
       ] : []),
       { path: "/reports", label: t("menu.reports"), icon: FileText },
+      // OCR Grading — TEACHER and ADMIN only
+      ...(["ADMIN", "TEACHER"].includes(user.role) ? [{ path: "/ocr-grading", label: t("menu.ocr_grading"), icon: ScanLine }] : []),
       { path: "/settings", label: t("menu.settings"), icon: Settings },
     ];
   };
@@ -165,6 +168,7 @@ export function Layout() {
     if (location.pathname === "/reports") return t("menu.reports");
     if (location.pathname === "/settings") return t("menu.settings");
     if (location.pathname === "/user-management") return t("menu.user_management");
+    if (location.pathname === "/ocr-grading") return t("menu.ocr_grading");
     if (location.pathname === "/learning-path") return t("menu.learning_path");
     if (location.pathname.startsWith("/ai-learning")) return t("menu.ai_learning");
     if (location.pathname === "/flashcards") return t("menu.flashcards");

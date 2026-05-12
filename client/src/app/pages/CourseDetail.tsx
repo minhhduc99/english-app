@@ -14,7 +14,7 @@ import {
   GraduationCap,
   FolderOpen,
   Target,
-  HelpCircle
+  HelpCircle,
 } from "lucide-react";
 import { useLanguage } from "../contexts/LanguageContext";
 import { toast } from "sonner";

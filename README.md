@@ -149,15 +149,36 @@ The standalone AI microservice powered by FastApi and Groq API.
 - **AI Learning Hub:** `POST /api/v1/chat/tutor` - Allows students to practice Speaking and Writing with customizable AI personas.
 - **Train Knowledge:** `POST /api/v1/knowledge/train/vocabularies` - Accepts vocabulary data to build an in-memory RAG context, enhancing the AI Tutor's responses with course-specific words.
 
+### 7.7. OCR Test Grading API
+Allows teachers and admins to scan a student's physical answer sheet (PDF or photo) and automatically grade it against the stored answer key.
+
+- **Scan & Grade:** `POST /api/course-exams/:courseId/:testId/grade-scan` (Admin/Teacher only)
+  - **Body:** `multipart/form-data` with a `file` field (PDF, JPG, PNG, WEBP, BMP, TIFF — max 20MB).
+  - **Pipeline:**
+    1. **EasyOCR** extracts raw text from the uploaded image/PDF.
+    2. **Groq LLM** parses the raw OCR output to identify per-question selected answers (A/B/C/D → 0/1/2/3) and returns `-1` for unanswered questions.
+    3. The identified answers are compared to the test's stored `correctAnswer` indices.
+    4. Returns a detailed result: score, percentage, pass/fail status, and per-question breakdown.
+  - **AI Microservice Endpoint:** `POST /api/v1/ocr/grade-test`
+
+### 7.8. Settings API (SettingsModule)
+Global system configurations.
+- **Get Setting:** `GET /api/settings/:key` (Admin only)
+- **Update Setting:** `PUT /api/settings/:key` (Admin only)
+  - **Payload:** `{ "value": "string" }`
+  - **Used for:** `AI_SYSTEM_PROMPT`, etc.
+
 ## 8. Localization (i18n)
 The system supports full real-time language switching:
 - **Languages**: English (`en`), Vietnamese (`vi`).
-- **Scope**: All UI labels, menu titles, instructional text, feedback messages, and game roadmaps.
-- **Storage**: User preference persisted via `localStorage`.
+- **Scope**: All UI labels, menu titles, instructional text, feedback messages, game roadmaps, and **Settings dashboard**.
+- **Storage**: User preference persisted via `localStorage` as `app_lang`.
 
 ## 9. AI Configuration & Prompts
 - **Admin Setup**: System prompts for the AI Tutor are dynamically configurable from the Admin Dashboard (`Settings` page).
-- **Execution**: Configurations are fetched by `core-service` and passed dynamically to `ai-service`, avoiding hardcoded behavior and ensuring system modularity.
+- **Example Prompts**: The UI provides standard templates (Strict Tutor, Conversational Partner, IELTS Coach, etc) that can be instantly applied.
+- **Execution**: Configurations are fetched from the database by `core-service` and passed dynamically as the `system_prompt` field in the request to `ai-service`.
+- **Modularity**: This removes hardcoded logic from the Python microservice, allowing administrators to tune AI behavior without code changes.
 
 ## 10. Running the Services (Development)
 
@@ -180,7 +201,16 @@ npm install
 npm run dev
 ```
 
+### 9.4. AI Service (FastAPI)
+```bash
+cd ai-service
+python -m venv .venv && .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn src.main:app --reload
+```
+
 # Next plan
 1. **Audio Integration**: Add Text-to-Speech (TTS) for vocabulary pronunciation.
 2. **Leaderboard**: Implement a global leaderboard based on XP and Coins.
 3. **Advanced Games**: Complete "Memory Match" and "Listen & Type" implementations.
+4. **OCR Enhancements**: Support essay/open-ended answer grading using semantic similarity scoring.

@@ -21,6 +21,7 @@ import { Achievements } from "./pages/student/Achievements";
 import { FlashcardManagement } from "./pages/FlashcardManagement";
 import { EnglishGames } from "./pages/EnglishGames";
 import { SecretStore } from "./pages/SecretStore";
+import { OcrGrading } from "./pages/teacher/OcrGrading";
 
 export const router = createBrowserRouter([
   { path: "/login", Component: Login },
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: "flashcards", Component: Flashcards },
       { path: "english-games", Component: EnglishGames },
       { path: "secret-store", Component: SecretStore },
+      { path: "ocr-grading", Component: OcrGrading },
       { path: "achievements", Component: Achievements },
     ],
   },

@@ -7,18 +7,9 @@ client = Groq(api_key=settings.GROQ_API_KEY)
 class AITutorService:
     def __init__(self):
         self.model = settings.GROQ_MODEL
-        self.system_prompt = """You are an enthusiastic and supportive English tutor.
-Your goal is to help students learn English effectively.
-You should adjust your explanations based on the student's request.
-You are capable of speaking both English and Vietnamese. If the user asks in Vietnamese, you can explain in Vietnamese but provide English examples. If the user asks in English, keep the conversation in English.
-CRITICAL LANGUAGE RULES:
-1. NEVER mix English and Vietnamese in the same sentence (e.g., do NOT say "This planet, hành tinh, is big").
-2. Example sentences and corrected sentences MUST be fully in English.
-3. If you provide a Vietnamese translation, it MUST be placed on a new line below the English sentence.
-4. Keep your answers concise and encouraging."""
 
     async def get_chat_response(self, message: str, conversation_history: list = None, system_prompt: str = None, persona: str = None, module: str = None) -> str:
-        base_prompt = system_prompt if system_prompt else self.system_prompt
+        base_prompt = system_prompt or "You are a helpful English tutor assistant."
         
         if persona:
             base_prompt += f"\n\nYou must strictly act as the persona: {persona}. Your tone and vocabulary should match this persona."
