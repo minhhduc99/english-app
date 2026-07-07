@@ -72,17 +72,17 @@ export class UsersService {
     return updated;
   }
 
-  async addRewards(userId: string, xp: number, coins: number, isDaily: boolean = false): Promise<any> {
+  async addRewards(userId: string, xp: number, stickers: number, isDaily: boolean = false): Promise<any> {
     let stats = await this.statsRepository.findOne({ where: { user_id: userId } });
     
     if (!stats) {
-      stats = this.statsRepository.create({ user_id: userId, xp: 0, coins: 0 });
+      stats = this.statsRepository.create({ user_id: userId, xp: 0, stickers: 0 });
     }
     
     const oldLevel = Math.floor((stats.xp || 0) / 1000) + 1;
     
     stats.xp = (stats.xp || 0) + xp;
-    stats.coins = (stats.coins || 0) + coins;
+    stats.stickers = (stats.stickers || 0) + stickers;
     
     if (isDaily) {
       stats.lastDailyGameAt = new Date().toISOString().split('T')[0];
@@ -95,7 +95,7 @@ export class UsersService {
 
     return {
       totalXp: stats.xp,
-      totalCoins: stats.coins,
+      totalStickers: stats.stickers,
       currentLevel: newLevel,
       levelUp,
     };

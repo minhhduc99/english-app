@@ -124,7 +124,7 @@ export class GamesService {
       hint: selected.definition,
       rewardPotential: {
         xp: Math.floor(Math.random() * 50) + 50, // 50-100 XP
-        coins: Math.floor(Math.random() * 20) + 10, // 10-30 Coins
+        stickers: Math.floor(Math.random() * 20) + 10, // 10-30 Stickers
       },
       difficulty: 'HARD',
     };
@@ -144,13 +144,13 @@ export class GamesService {
     if (result.success) {
       // Random reward
       const xp = Math.floor(Math.random() * 50) + 50;
-      const coins = Math.floor(Math.random() * 20) + 10;
+      const stickers = Math.floor(Math.random() * 20) + 10;
       
-      const stats = await this.usersService.addRewards(userId, xp, coins, true);
+      const stats = await this.usersService.addRewards(userId, xp, stickers, true);
       
       return {
         ...result,
-        rewards: { xp, coins },
+        rewards: { xp, stickers },
         stats,
       };
     }
@@ -198,9 +198,9 @@ export class GamesService {
 
     if (isCorrect && userId) {
       const xp = 20;
-      const coins = 5;
-      stats = await this.usersService.addRewards(userId, xp, coins, false);
-      rewards = { xp, coins };
+      const stickers = 5;
+      stats = await this.usersService.addRewards(userId, xp, stickers, false);
+      rewards = { xp, stickers };
     }
 
     return {
@@ -225,9 +225,9 @@ export class GamesService {
 
     if (isCorrect && userId) {
       const xp = 30;
-      const coins = 10;
-      stats = await this.usersService.addRewards(userId, xp, coins, false);
-      rewards = { xp, coins };
+      const stickers = 10;
+      stats = await this.usersService.addRewards(userId, xp, stickers, false);
+      rewards = { xp, stickers };
     }
 
     return {
@@ -241,18 +241,18 @@ export class GamesService {
 
   async awardGameReward(userId: string, mode: string) {
     let xp = 10;
-    let coins = 2;
+    let stickers = 2;
 
     if (mode === 'memory') {
       xp = 40;
-      coins = 15;
+      stickers = 15;
     }
 
-    const stats = await this.usersService.addRewards(userId, xp, coins, false);
+    const stats = await this.usersService.addRewards(userId, xp, stickers, false);
     
     return {
       success: true,
-      rewards: { xp, coins },
+      rewards: { xp, stickers },
       stats,
     };
   }
@@ -271,9 +271,9 @@ export class GamesService {
 
     if (isCorrect && userId) {
       const xp = 25;
-      const coins = 8;
-      stats = await this.usersService.addRewards(userId, xp, coins, false);
-      rewards = { xp, coins };
+      const stickers = 8;
+      stats = await this.usersService.addRewards(userId, xp, stickers, false);
+      rewards = { xp, stickers };
     }
 
     return {

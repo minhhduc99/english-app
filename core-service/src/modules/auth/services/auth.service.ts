@@ -110,7 +110,7 @@ export class AuthService {
     return {
       ...result,
       xp: studentStats?.xp || 0,
-      coins: studentStats?.coins || 0,
+      stickers: studentStats?.stickers || 0,
       lastDailyGameAt: studentStats?.lastDailyGameAt || null,
       streakDays: studentStats?.streakDays || 0,
     };

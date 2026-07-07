@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Gamepad2, Brain, Search, BookOpen, MessageSquare, X, Sparkles, Trophy, Coins, Star, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Gamepad2, Brain, Search, BookOpen, MessageSquare, X, Sparkles, Trophy, Star, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { StickerIcon } from "../components/StickerIcon";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -59,7 +60,7 @@ export function EnglishGames() {
   const [scrambleItems, setScrambleItems] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState("");
-  const [gameFeedback, setGameFeedback] = useState<{ success?: boolean; message?: string; rewards?: { xp: number; coins: number } } | null>(null);
+  const [gameFeedback, setGameFeedback] = useState<{ success?: boolean; message?: string; rewards?: { xp: number; stickers: number } } | null>(null);
   const [dailyStatus, setDailyStatus] = useState<any>(null);
 
   // Sentence Master State
@@ -213,7 +214,7 @@ export function EnglishGames() {
             if (cached) {
                 const u = JSON.parse(cached);
                 u.xp = result.stats.totalXp;
-                u.coins = result.stats.totalCoins;
+                u.stickers = result.stats.totalStickers;
                 localStorage.setItem("user", JSON.stringify(u));
                 // Fire storage event for UI sync
                 window.dispatchEvent(new Event('storage'));
@@ -291,7 +292,7 @@ export function EnglishGames() {
                     if (cached) {
                         const u = JSON.parse(cached);
                         u.xp = result.stats.totalXp;
-                        u.coins = result.stats.totalCoins;
+                        u.stickers = result.stats.totalStickers;
                         localStorage.setItem("user", JSON.stringify(u));
                         window.dispatchEvent(new Event('storage'));
                     }
@@ -390,7 +391,7 @@ export function EnglishGames() {
               <div className="text-blue-400 font-bold uppercase tracking-widest text-sm">{t("games.xp")}</div>
             </div>
             <div className="bg-yellow-50 rounded-3xl p-8 border-2 border-yellow-100">
-              <div className="text-yellow-600 font-black text-4xl mb-2">+{gameFeedback.rewards.coins}</div>
+              <div className="text-yellow-600 font-black text-4xl mb-2">+{gameFeedback.rewards.stickers}</div>
               <div className="text-yellow-400 font-bold uppercase tracking-widest text-sm">{t("games.coins")}</div>
             </div>
           </div>
@@ -746,7 +747,7 @@ export function EnglishGames() {
                     <span>50-100 {t("games.xp")}</span>
                   </div>
                   <div className="flex items-center gap-1.5 bg-gray-50 px-4 py-2 rounded-xl">
-                    <Coins className="w-5 h-5 text-yellow-500" />
+                    <StickerIcon className="w-5 h-5 text-yellow-500" />
                     <span>10-30 {t("games.coins")}</span>
                   </div>
                 </div>
@@ -810,7 +811,7 @@ export function EnglishGames() {
                 </div>
                 <h3 className="text-4xl font-black mb-4 tracking-tight">Monthly Secret Store</h3>
                 <p className="text-gray-400 font-medium text-lg max-w-lg">
-                    Exchange your earned <span className="text-yellow-400 font-bold">EduCoins</span> for limited-edition avatars, gift cards, and exclusive real-world vouchers. 
+                    Exchange your earned <span className="text-yellow-400 font-bold">EduStickers</span> for limited-edition avatars, gift cards, and exclusive real-world vouchers. 
                 </p>
             </div>
             <div className="flex items-center gap-10">
@@ -822,7 +823,7 @@ export function EnglishGames() {
                  </div>
                  <div className="text-center group-hover:scale-110 transition-transform duration-500 delay-75">
                     <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center mb-3 backdrop-blur-md border border-white/20">
-                        <Coins className="w-10 h-10 text-yellow-400" />
+                        <StickerIcon className="w-10 h-10 text-yellow-400" />
                     </div>
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Currency</span>
                  </div>

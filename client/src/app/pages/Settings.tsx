@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Brain, Sparkles, Zap, Users, Shield, Palette, Image,
   Sun, Moon, Monitor, ChevronDown, ChevronRight, Copy, Check,
-  Info, RefreshCw, Lightbulb,
+  Info, RefreshCw, Lightbulb, Sticker,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -93,6 +93,10 @@ export function Settings() {
   const [expandedExample, setExpandedExample] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // ── Sticker state ──
+  const [stickerUrl, setStickerUrl] = useState("");
+  const [isSavingSticker, setIsSavingSticker] = useState(false);
+
   useEffect(() => {
     if (!isAdmin) return;
     fetch("/api/settings/AI_SYSTEM_PROMPT", {
@@ -101,6 +105,13 @@ export function Settings() {
       .then((r) => r.json())
       .then((data) => { if (data.value) setSystemPrompt(data.value); })
       .catch(() => toast.error(t("settings.ai_prompt_load_error")));
+
+    fetch("/api/settings/SYSTEM_STICKER_IMAGE", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    })
+      .then((r) => r.json())
+      .then((data) => { if (data.value) setStickerUrl(data.value); })
+      .catch(() => console.error("Could not load sticker image"));
   }, [isAdmin]);
 
   const handleSaveSystemPrompt = async () => {
@@ -120,6 +131,28 @@ export function Settings() {
       toast.error(t("settings.ai_prompt_save_error"));
     } finally {
       setIsSavingPrompt(false);
+    }
+  };
+
+  const handleSaveStickerUrl = async () => {
+    try {
+      setIsSavingSticker(true);
+      const res = await fetch("/api/settings/SYSTEM_STICKER_IMAGE", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ value: stickerUrl }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Sticker image updated successfully!");
+      // reload window to apply sticker globally
+      setTimeout(() => window.location.reload(), 1000);
+    } catch {
+      toast.error("Failed to update sticker image");
+    } finally {
+      setIsSavingSticker(false);
     }
   };
 
@@ -334,6 +367,72 @@ export function Settings() {
                   ) : (
                     t("settings.ai_prompt_save")
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── System Sticker ── */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mt-6 mb-6">
+            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center shadow">
+                  <Sticker className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">System Sticker Image</h3>
+                  <p className="text-sm text-gray-500">Provide an image URL to replace the default sticker icon</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700">Image URL</label>
+                    <input
+                      type="text"
+                      value={stickerUrl}
+                      onChange={(e) => setStickerUrl(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm mt-1"
+                      placeholder="https://example.com/my-sticker.png"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Or Upload Image</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setStickerUrl(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Leave empty to use the default system sticker icon.</p>
+                </div>
+                <div className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center bg-gray-50 overflow-hidden p-2">
+                   {stickerUrl ? (
+                     <img src={stickerUrl} alt="Preview" className="w-full h-full object-contain" />
+                   ) : (
+                     <Sticker className="w-8 h-8 text-gray-300" />
+                   )}
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveStickerUrl}
+                  disabled={isSavingSticker}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 font-semibold text-sm"
+                >
+                  {isSavingSticker ? "Saving..." : "Save Sticker Image"}
                 </button>
               </div>
             </div>

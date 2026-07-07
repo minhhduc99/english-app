@@ -1,4 +1,5 @@
-import { Trophy, Coins, Star, Package, Sparkles, Gift, LayoutGrid, Clock } from "lucide-react";
+import { Trophy, Star, Package, Sparkles, Gift, LayoutGrid, Clock } from "lucide-react";
+import { StickerIcon } from "../components/StickerIcon";
 import { toast } from "sonner";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -40,7 +41,7 @@ export function SecretStore() {
       price: 800,
       image: "🎁",
       rarity: "UNCOMMON",
-      description: "Take a chance! Could contain XP boosts, coins, or rare avatars."
+      description: "Take a chance! Could contain XP boosts, stickers, or rare avatars."
     }
   ];
 
@@ -63,10 +64,11 @@ export function SecretStore() {
             
             <div className="bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-6 border border-white/20 flex flex-col items-center">
                 <div className="flex items-center gap-3 mb-2">
-                    <Coins className="w-8 h-8 text-yellow-400 fill-yellow-400" />
-                    <span className="text-4xl font-black text-white">4,250</span>
+                    <StickerIcon className="w-8 h-8 text-yellow-400" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-widest text-yellow-500/70">Your EduStickers Balance</span>
                 </div>
-                <span className="text-xs font-black uppercase tracking-widest text-yellow-500/70">Your EduCoins Balance</span>
             </div>
         </div>
       </div>
@@ -99,7 +101,7 @@ export function SecretStore() {
                 onClick={() => toast.success(`You purchased ${item.name}!`)}
                 className="w-full py-4 bg-[#111827] text-white rounded-2xl font-black flex items-center justify-center gap-3 group-hover:bg-black transition-colors"
              >
-                <Coins className="w-5 h-5 text-yellow-400" />
+                <StickerIcon className="w-5 h-5 text-yellow-400" />
                 {item.price}
              </button>
           </div>
@@ -111,7 +113,7 @@ export function SecretStore() {
           <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Gift className="w-8 h-8 text-blue-600" />
           </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-4">How to earn more EduCoins?</h2>
+          <h2 className="text-2xl font-black text-gray-900 mb-4">How to earn more EduStickers?</h2>
           <div className="flex flex-wrap justify-center gap-10">
               <div className="flex flex-col items-center">
                   <div className="text-2xl font-black text-blue-600">Daily</div>

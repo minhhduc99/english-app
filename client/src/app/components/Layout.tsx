@@ -25,11 +25,11 @@ import {
   Gamepad2,
   TrendingUp,
   ShoppingBag,
-  Coins,
   Star,
   ScanLine,
   Bot,
 } from "lucide-react";
+import { StickerIcon } from "./StickerIcon";
 
 export function Layout() {
   const location = useLocation();
@@ -401,11 +401,12 @@ export function Layout() {
                         {/* Economy */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
-                                <div className="flex items-center gap-2 text-orange-600 mb-1">
-                                    <Coins className="w-4 h-4" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Balance</span>
+                                <div className="flex items-center gap-2 text-orange-600 bg-orange-100/50 px-3 py-1.5 rounded-full border border-orange-200 shadow-sm">
+                                    <StickerIcon className="w-4 h-4" />
+                                    <div className="flex flex-col">
+                                        <div className="text-xl font-black text-orange-900">{(user as any).stickers || 0} <span className="text-xs text-orange-400">Stickers</span></div>
+                                    </div>
                                 </div>
-                                <div className="text-xl font-black text-orange-900">{(user as any).coins || 0} <span className="text-xs text-orange-400">Coins</span></div>
                             </div>
                             <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
                                 <div className="flex items-center gap-2 text-yellow-600 mb-1">

@@ -9,8 +9,8 @@ export class StudentStats {
   @Column({ default: 0 })
   xp!: number;
 
-  @Column({ default: 0 })
-  coins!: number;
+  @Column({ type: 'int', default: 0 })
+  stickers!: number;
 
   @Column({ type: 'date', nullable: true })
   lastDailyGameAt!: string | null;
