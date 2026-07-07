@@ -47,43 +47,43 @@ services:
       - lms
 
   # Core Service (NestJS)
-  # core-lms:
-  #   build: 
-  #     context: ./core-service
-  #     dockerfile: Dockerfile
-  #   container_name: lms-core
-  #   environment:
-  #     - NODE_ENV=development
-  #     - DATABASE_URL=postgresql://lms_admin:securepassword123@postgres:5432/lms_db
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
-  #     - S3_ENDPOINT=http://garage:3900
-  #     - AI_SERVICE_URL=http://ai-service:8000
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #     - garage
-  #   restart: unless-stopped
+  core-lms:
+    build: 
+      context: ./core-service
+      dockerfile: Dockerfile
+    container_name: lms-core
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://lms_admin:securepassword123@postgres:5432/lms_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - S3_ENDPOINT=http://garage:3900
+      - AI_SERVICE_URL=http://ai-service:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+      - garage
+    restart: unless-stopped
 
-  # # AI Service (FastAPI)
-  # ai-service:
-  #   build:
-  #     context: ./ai-service
-  #     dockerfile: Dockerfile
-  #   container_name: lms-ai
-  #   environment:
-  #     - ENVIRONMENT=development
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
-  #     - PINECONE_API_KEY=your_pinecone_key
-  #     - PING_WEBHOOK_URL=http://core-lms:3000/api/webhooks/ai
-  #   ports:
-  #     - "8000:8000" # REST/Websockets
-  #   depends_on:
-  #     - redis
-  #   restart: unless-stopped
+  # AI Service (FastAPI)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: lms-ai
+    environment:
+      - ENVIRONMENT=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PINECONE_API_KEY=your_pinecone_key
+      - PING_WEBHOOK_URL=http://core-lms:3000/api/webhooks/ai
+    ports:
+      - "8000:8000" # REST/Websockets
+    depends_on:
+      - redis
+    restart: unless-stopped
 
 volumes:
   postgres_data:

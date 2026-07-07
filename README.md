@@ -214,3 +214,9 @@ uvicorn src.main:app --reload
 2. **Leaderboard**: Implement a global leaderboard based on XP and Coins.
 3. **Advanced Games**: Complete "Memory Match" and "Listen & Type" implementations.
 4. **OCR Enhancements**: Support essay/open-ended answer grading using semantic similarity scoring.
+
+## Changelog
+### [Performance Optimization] Concurrent Scaling 
+- **AI Service Clustering:** Configured `ai-service/Dockerfile` to run FastAPI with `uvicorn --workers 4`, solving GIL limitations and significantly improving concurrent WebSocket stream processing capacity.
+- **Core Service Clustering:** Created `core-service/Dockerfile` with `pm2` cluster mode (`-i max`) to enable Node.js multi-threading across all available CPU cores.
+- **Environment Unification:** Updated `docker-compose.yml` to uncomment and boot both fully-configured application services alongside infrastructure.
