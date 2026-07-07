@@ -28,6 +28,7 @@ import {
   Coins,
   Star,
   ScanLine,
+  Bot,
 } from "lucide-react";
 
 export function Layout() {
@@ -100,7 +101,7 @@ export function Layout() {
       return [
         { path: "/", label: t("menu.home"), icon: Home },
         { path: "/courses", label: t("menu.my_courses"), icon: BookOpen },
-        { path: "/ai-learning", label: t("menu.ai_learning"), icon: Mic },
+        { path: "/ai-learning", label: t("menu.ai_learning"), icon: Bot },
         {
           path: "/learning-materials",
           label: t("menu.learning_materials"),

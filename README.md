@@ -208,6 +208,11 @@ python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn src.main:app --reload
 ```
+```
+// Windows
+.venv\Scripts\Activate.ps1
+uvicorn src.main:app --reload
+```
 
 # Next plan
 1. **Audio Integration**: Add Text-to-Speech (TTS) for vocabulary pronunciation.
