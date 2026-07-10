@@ -77,13 +77,40 @@ export function EnglishGames() {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState<{ level: number; xp: number } | null>(null);
+  const [showPlayAgain, setShowPlayAgain] = useState(false);
+  const [lastPlayed, setLastPlayed] = useState<string | null>(null);
 
-  const playSound = (success: boolean) => {
-    const audio = new Audio(success 
-      ? "https://cdn.pixabay.com/audio/2021/08/04/audio_0625c153f0.mp3" 
-      : "https://cdn.pixabay.com/audio/2021/08/04/audio_12b0c7443c.mp3"
-    );
-    audio.play().catch(e => console.log("Sound play prevented"));
+  const playSound = (success: boolean, textToSpeak?: string, lang: string = 'en-US', onFinish?: () => void) => {
+    if (success) {
+      if (textToSpeak && 'speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance(textToSpeak);
+        msg.lang = lang;
+        if (onFinish) {
+          msg.onend = onFinish;
+          msg.onerror = onFinish;
+        }
+        window.speechSynthesis.speak(msg);
+      } else {
+        const audio = new Audio("/sounds/correct.mp3");
+        if (onFinish) {
+          audio.onended = onFinish;
+          audio.onerror = onFinish;
+        }
+        audio.play().catch(e => {
+          console.log("Sound play prevented");
+          if (onFinish) onFinish();
+        });
+      }
+    } else {
+      if ('speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance("Try again");
+        msg.lang = 'en-US';
+        window.speechSynthesis.speak(msg);
+      } else {
+        const audio = new Audio("/sounds/wrong.mp3");
+        audio.play().catch(e => console.log("Sound play prevented"));
+      }
+    }
   };
 
   useEffect(() => {
@@ -224,14 +251,16 @@ export function EnglishGames() {
             setShowLevelUp({ level: result.stats.currentLevel, xp: result.stats.totalXp });
         }
         
-        playSound(result.success);
-
+        let textToSpeak = answer;
+        if (isTranslation && translationItems[currentIndex]?.type === 'EN_VN') {
+            textToSpeak = translationItems[currentIndex].question;
+        }
+        
         if (result.success) {
-          toast.success(t("games.correct"));
-          if (isDaily) {
-            setDailyStatus({ ...dailyStatus, completed: true });
-          } else {
-            setTimeout(() => {
+          const proceedToNext = () => {
+            if (isDaily) {
+              setDailyStatus((prev: any) => ({ ...prev, completed: true }));
+            } else {
               const currentList = isSentence ? sentenceItems : isTranslation ? translationItems : scrambleItems;
               if (currentIndex < currentList.length - 1) {
                 setCurrentIndex(currentIndex + 1);
@@ -239,13 +268,15 @@ export function EnglishGames() {
                 setSelectedWords([]);
                 setGameFeedback(null);
               } else {
+                setLastPlayed(playingGame);
                 toast.success(t("games.congrats"));
-                setPlayingGame(null);
+                setShowPlayAgain(true);
               }
-            }, 1500);
-          }
+            }
+          };
+          playSound(true, textToSpeak, 'en-US', proceedToNext);
         } else {
-          toast.error(t("games.wrong"));
+          playSound(false);
           if (isSentence) {
             setSelectedWords([]); // Reset on wrong
           }
@@ -268,46 +299,49 @@ export function EnglishGames() {
       const secondCard = memoryCards[newFlipped[1]];
 
       if (firstCard.vocabId === secondCard.vocabId) {
-        setMatchedPairs([...matchedPairs, firstCard.vocabId]);
-        setFlippedCards([]);
-        setIsProcessing(false);
         toast.success("Match found!");
-        
-        if (matchedPairs.length + 1 === memoryCards.length / 2) {
-          setTimeout(async () => {
-            try {
-              const res = await fetch("/api/games/reward", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${localStorage.getItem("token")}`
-                },
-                body: JSON.stringify({ mode: 'memory' })
-              });
-              if (res.ok) {
-                const result = await res.json();
-                setGameFeedback(result);
-                if (result.stats) {
-                    const cached = localStorage.getItem("user");
-                    if (cached) {
-                        const u = JSON.parse(cached);
-                        u.xp = result.stats.totalXp;
-                        u.stickers = result.stats.totalStickers;
-                        localStorage.setItem("user", JSON.stringify(u));
-                        window.dispatchEvent(new Event('storage'));
-                    }
+        setTimeout(() => {
+          setMatchedPairs([...matchedPairs, firstCard.vocabId]);
+          setFlippedCards([]);
+          setIsProcessing(false);
+          
+          if (matchedPairs.length + 1 === memoryCards.length / 2) {
+            setTimeout(async () => {
+              try {
+                const res = await fetch("/api/games/reward", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                  },
+                  body: JSON.stringify({ mode: 'memory' })
+                });
+                if (res.ok) {
+                  const result = await res.json();
+                  setGameFeedback(result);
+                  if (result.stats) {
+                      const cached = localStorage.getItem("user");
+                      if (cached) {
+                          const u = JSON.parse(cached);
+                          u.xp = result.stats.totalXp;
+                          u.stickers = result.stats.totalStickers;
+                          localStorage.setItem("user", JSON.stringify(u));
+                          window.dispatchEvent(new Event('storage'));
+                      }
+                  }
+                  if (result.stats?.levelUp) {
+                    setShowLevelUp({ level: result.stats.currentLevel, xp: result.stats.totalXp });
+                  }
                 }
-                if (result.stats?.levelUp) {
-                  setShowLevelUp({ level: result.stats.currentLevel, xp: result.stats.totalXp });
-                }
+              } catch (e) {
+                console.error("Reward error", e);
               }
-            } catch (e) {
-              console.error("Reward error", e);
-            }
-            toast.success(t("games.congrats"));
-            setPlayingGame(null);
-          }, 1000);
-        }
+              setLastPlayed(playingGame);
+              toast.success(t("games.congrats"));
+              setShowPlayAgain(true);
+            }, 500);
+          }
+        }, 800);
       } else {
         setTimeout(() => {
           setFlippedCards([]);
@@ -317,7 +351,8 @@ export function EnglishGames() {
     }
   };
 
-  if (playingGame === "scramble" && scrambleItems.length > 0) {
+  const renderContent = () => {
+    if (playingGame === "scramble" && scrambleItems.length > 0) {
     const current = scrambleItems[currentIndex];
     return (
       <div className="p-6 max-w-2xl mx-auto space-y-8 animate-in zoom-in-95 duration-300">
@@ -330,22 +365,22 @@ export function EnglishGames() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border-2 border-blue-100 p-12 text-center shadow-xl shadow-blue-50/50">
+        <div className="relative bg-white rounded-3xl border-2 border-blue-100 p-12 text-center shadow-xl shadow-blue-50/50">
+          {gameFeedback && (
+            <div className="absolute top-6 right-6 animate-in zoom-in-50 duration-300">
+              {gameFeedback.success ? (
+                <CheckCircle2 className="w-12 h-12 text-green-500 fill-green-50" />
+              ) : (
+                <XCircle className="w-12 h-12 text-red-500 fill-red-50" />
+              )}
+            </div>
+          )}
           <div className="text-sm uppercase tracking-widest text-[#1A73E8] font-bold mb-4">{t("games.scrambled_word")}</div>
           
-          <div className="relative mb-8">
-            <div className="text-5xl font-black tracking-[0.2em] text-[#111827] select-none">
+          <div className="mb-8">
+            <div className="text-4xl md:text-5xl font-black tracking-[0.1em] md:tracking-[0.2em] text-[#111827] select-none break-all">
               {current.scrambled.toUpperCase()}
             </div>
-            {gameFeedback && (
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 animate-in zoom-in-50 duration-300">
-                {gameFeedback.success ? (
-                  <CheckCircle2 className="w-16 h-16 text-green-500 fill-green-50" />
-                ) : (
-                  <XCircle className="w-16 h-16 text-red-500 fill-red-50" />
-                )}
-              </div>
-            )}
           </div>
 
           <div className="bg-gray-50 rounded-2xl p-6 mb-8 text-gray-600 italic relative text-center">
@@ -422,21 +457,21 @@ export function EnglishGames() {
           <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-50 rounded-full blur-3xl opacity-50" />
           
           <div className="relative z-10">
+            {gameFeedback && (
+              <div className="absolute top-6 right-6 animate-in zoom-in-50 duration-300 z-20">
+                {gameFeedback.success ? (
+                  <CheckCircle2 className="w-12 h-12 text-green-500 fill-green-50" />
+                ) : (
+                  <XCircle className="w-12 h-12 text-red-500 fill-red-50" />
+                )}
+              </div>
+            )}
             <div className="text-sm uppercase tracking-widest text-purple-500 font-bold mb-4">{t("games.scrambled_word")}</div>
             
-            <div className="relative mb-8">
-              <div className="text-6xl font-black tracking-[0.2em] text-[#111827] select-none">
+            <div className="mb-8">
+              <div className="text-4xl md:text-6xl font-black tracking-[0.1em] md:tracking-[0.2em] text-[#111827] select-none break-all">
                 {dailyStatus.scrambled.toUpperCase()}
               </div>
-              {gameFeedback && (
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 animate-in zoom-in-50 duration-300">
-                  {gameFeedback.success ? (
-                    <CheckCircle2 className="w-16 h-16 text-green-500 fill-green-50" />
-                  ) : (
-                    <XCircle className="w-16 h-16 text-red-500 fill-red-50" />
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="bg-purple-50/50 rounded-2xl p-6 mb-8 text-gray-600 italic relative text-center border border-purple-100">
@@ -481,7 +516,16 @@ export function EnglishGames() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border-2 border-orange-100 p-10 shadow-xl shadow-orange-50/50">
+        <div className="relative bg-white rounded-3xl border-2 border-orange-100 p-10 shadow-xl shadow-orange-50/50">
+          {gameFeedback && (
+            <div className="absolute top-6 right-6 animate-in zoom-in-50 duration-300">
+              {gameFeedback.success ? (
+                <CheckCircle2 className="w-12 h-12 text-green-500 fill-green-50" />
+              ) : (
+                <XCircle className="w-12 h-12 text-red-500 fill-red-50" />
+              )}
+            </div>
+          )}
           <div className="text-center mb-10">
             <h2 className="text-2xl font-black text-gray-900 mb-2">{t("games.sentence_title")}</h2>
             <div className="inline-block px-4 py-1 bg-orange-100 text-orange-600 rounded-full text-xs font-bold uppercase tracking-widest">
@@ -489,7 +533,7 @@ export function EnglishGames() {
             </div>
           </div>
 
-          <div className="relative mb-8">
+          <div className="mb-8">
             <div className="min-h-[120px] p-6 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-wrap gap-2 items-center justify-center">
               {selectedWords.length > 0 ? selectedWords.map((word, i) => (
                 <button
@@ -503,15 +547,6 @@ export function EnglishGames() {
                 <p className="text-gray-400 italic">Click words below to build the sentence...</p>
               )}
             </div>
-            {gameFeedback && (
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 animate-in zoom-in-50 duration-300">
-                {gameFeedback.success ? (
-                  <CheckCircle2 className="w-16 h-16 text-green-500 fill-green-50" />
-                ) : (
-                  <XCircle className="w-16 h-16 text-red-500 fill-red-50" />
-                )}
-              </div>
-            )}
           </div>
 
           <div className="flex flex-wrap gap-2 justify-center mb-10">
@@ -570,22 +605,22 @@ export function EnglishGames() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border-2 border-red-100 p-12 text-center shadow-xl shadow-red-50/50">
+        <div className="relative bg-white rounded-3xl border-2 border-red-100 p-12 text-center shadow-xl shadow-red-50/50">
+          {gameFeedback && (
+            <div className="absolute top-6 right-6 animate-in zoom-in-50 duration-300">
+              {gameFeedback.success ? (
+                <CheckCircle2 className="w-12 h-12 text-green-500 fill-green-50" />
+              ) : (
+                <XCircle className="w-12 h-12 text-red-500 fill-red-50" />
+              )}
+            </div>
+          )}
           <div className="text-sm uppercase tracking-widest text-red-600 font-bold mb-6">
             {current.type === 'EN_VN' ? t("games.translate_to_vn") : t("games.translate_to_en")}
           </div>
           
-          <div className="relative mb-10">
+          <div className="mb-10">
             <div className="text-4xl font-bold text-gray-900">{current.question}</div>
-            {gameFeedback && (
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 animate-in zoom-in-50 duration-300">
-                {gameFeedback.success ? (
-                  <CheckCircle2 className="w-16 h-16 text-green-500 fill-green-50" />
-                ) : (
-                  <XCircle className="w-16 h-16 text-red-500 fill-red-50" />
-                )}
-              </div>
-            )}
           </div>
 
           <div className="space-y-4">
@@ -653,39 +688,7 @@ export function EnglishGames() {
       </div>
     );
   }
-
-  if (showLevelUp) {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-500">
-        <div className="relative bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 p-1 rounded-[3rem] shadow-2xl shadow-orange-500/50 animate-in zoom-in-95 duration-500 scale-110">
-          <div className="bg-white rounded-[2.8rem] p-12 text-center relative overflow-hidden">
-             <div className="absolute top-10 left-10 w-4 h-4 bg-yellow-400 rounded-full animate-ping" />
-             <div className="absolute bottom-10 right-10 w-6 h-6 bg-blue-400 rounded-full animate-bounce" />
-             <div className="absolute top-1/2 right-4 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
-             
-             <div className="relative z-10">
-                <div className="w-32 h-32 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
-                  <Star className="w-16 h-16 text-yellow-600" />
-                </div>
-                <h2 className="text-5xl font-black text-gray-900 mb-2 uppercase tracking-tighter">Level Up!</h2>
-                <div className="inline-block px-8 py-2 bg-yellow-500 text-white rounded-full text-2xl font-black mb-6">
-                  LEVEL {showLevelUp.level}
-                </div>
-                <p className="text-gray-500 font-bold text-lg mb-10">
-                    You've reached a new milestone! Keep up the great work.
-                </p>
-                <button 
-                  onClick={() => setShowLevelUp(null)}
-                  className="w-full py-5 bg-[#111827] text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl"
-                >
-                  AWESOME!
-                </button>
-             </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Modals moved to bottom
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
@@ -833,5 +836,78 @@ export function EnglishGames() {
 
       
     </div>
+  );
+  };
+
+  return (
+    <>
+      {renderContent()}
+      
+      {showPlayAgain && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-500">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center animate-in zoom-in-95">
+            <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Gamepad2 className="w-10 h-10" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Play Again?</h2>
+            <p className="text-gray-500 mb-8">Do you want to play another round?</p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setShowPlayAgain(false);
+                  setPlayingGame(null);
+                }}
+                className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-all"
+              >
+                No
+              </button>
+              <button
+                onClick={() => {
+                  setShowPlayAgain(false);
+                  if (lastPlayed === 'scramble') startScramble();
+                  else if (lastPlayed === 'sentence') startSentenceMaster();
+                  else if (lastPlayed === 'memory') startMemoryMatch();
+                  else if (lastPlayed === 'translation') startTranslationMaster();
+                }}
+                className="flex-[2] py-3 bg-[#1A73E8] text-white font-bold rounded-xl hover:bg-[#1557B0] transition-all shadow-lg"
+              >
+                Yes, let's play!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLevelUp && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-500">
+          <div className="relative bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 p-1 rounded-[3rem] shadow-2xl shadow-orange-500/50 animate-in zoom-in-95 duration-500 scale-110">
+            <div className="bg-white rounded-[2.8rem] p-12 text-center relative overflow-hidden">
+               <div className="absolute top-10 left-10 w-4 h-4 bg-yellow-400 rounded-full animate-ping" />
+               <div className="absolute bottom-10 right-10 w-6 h-6 bg-blue-400 rounded-full animate-bounce" />
+               <div className="absolute top-1/2 right-4 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+               
+               <div className="relative z-10">
+                  <div className="w-32 h-32 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+                    <Star className="w-16 h-16 text-yellow-600" />
+                  </div>
+                  <h2 className="text-5xl font-black text-gray-900 mb-2 uppercase tracking-tighter">Level Up!</h2>
+                  <div className="inline-block px-8 py-2 bg-yellow-500 text-white rounded-full text-2xl font-black mb-6">
+                    LEVEL {showLevelUp.level}
+                  </div>
+                  <p className="text-gray-500 font-bold text-lg mb-10">
+                      You've reached a new milestone! Keep up the great work.
+                  </p>
+                  <button 
+                    onClick={() => setShowLevelUp(null)}
+                    className="w-full py-5 bg-[#111827] text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl"
+                  >
+                    AWESOME!
+                  </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
