@@ -18,6 +18,7 @@ import { TestsModule } from './modules/tests/tests.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { OcrGradingModule } from './modules/ocr-grading/ocr-grading.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 
 @Module({
@@ -68,6 +69,7 @@ import { OcrGradingModule } from './modules/ocr-grading/ocr-grading.module';
     AiChatModule,
     SettingsModule,
     OcrGradingModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

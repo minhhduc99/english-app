@@ -19,6 +19,7 @@ We use **Polyglot Persistence**: PostgreSQL for relational data, Pinecone for Ve
 |---|---|---|
 | users | id (UUID PK), username, password, fullName, email, role | **Normalized**: Identity and Auth only. |
 | student_stats| id, user_id (FK), xp, coins, lastDailyGameAt, streakDays | **Decoupled**: Only for Students. Tracks progression and rewards. |
+| notifications| id (UUID PK), userId (FK), title, message, type, isRead | Real-time notification system (LEVEL_UP, CLASS, SYSTEM). |
 
 ### 2.2. Operations & Attendance (Partitioned)
 
@@ -168,6 +169,12 @@ Global system configurations.
   - **Payload:** `{ "value": "string" }`
   - **Used for:** `AI_SYSTEM_PROMPT`, etc.
 
+### 7.9. Real-time Notifications API (NotificationsModule)
+Allows users to receive and track real-time events like leveling up and class announcements.
+- **Get Notifications:** `GET /api/notifications` - Fetches the user's latest 50 notifications, unread first.
+- **Mark as Read:** `PUT /api/notifications/:id/read` - Marks a specific notification as read.
+- **Broadcast:** `POST /api/notifications/broadcast` (Teacher/Admin only) - Broadcasts an announcement to all students in a class.
+
 ## 8. Localization (i18n)
 The system supports full real-time language switching:
 - **Languages**: English (`en`), Vietnamese (`vi`).
@@ -221,6 +228,11 @@ uvicorn src.main:app --reload
 4. **OCR Enhancements**: Support essay/open-ended answer grading using semantic similarity scoring.
 
 ## Changelog
+### [Feature] Real-time Notification System
+- **Backend:** Implemented `NotificationsModule` with PostgreSQL `notifications` table, supporting dynamic event types (`LEVEL_UP`, `CLASS`).
+- **Integration:** Automated notification dispatch connected to the Gamification engine (XP/Level Up).
+- **Frontend:** Built a responsive, animated dropdown UI in the global Layout to display notifications, complete with unread badging and automatic background polling.
+
 ### [Performance Optimization] Concurrent Scaling 
 - **AI Service Clustering:** Configured `ai-service/Dockerfile` to run FastAPI with `uvicorn --workers 4`, solving GIL limitations and significantly improving concurrent WebSocket stream processing capacity.
 - **Core Service Clustering:** Created `core-service/Dockerfile` with `pm2` cluster mode (`-i max`) to enable Node.js multi-threading across all available CPU cores.

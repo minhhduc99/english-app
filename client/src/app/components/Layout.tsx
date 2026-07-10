@@ -39,6 +39,36 @@ export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { t } = useLanguage();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch("/api/notifications", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      if (res.ok) {
+        setNotifications(await res.json());
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await fetch(`/api/notifications/${id}/read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch (e) {}
+  };
   const { getBackgroundClass } = useTheme();
   
   // Use user state instead of hardcoded
@@ -325,10 +355,67 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
-            <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                )}
+              </button>
+              
+              {notificationsOpen && (
+                <>
+                  <div className="fixed inset-0 z-[60]" onClick={() => setNotificationsOpen(false)} />
+                  <div className="absolute top-full right-0 mt-4 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-[70] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                      <h3 className="font-bold text-gray-900">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-bold">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                          <p className="text-sm">You have no notifications</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          {notifications.map((notif: any) => (
+                            <div 
+                              key={notif.id}
+                              onClick={() => {
+                                if (!notif.isRead) markNotificationAsRead(notif.id);
+                              }}
+                              className={`p-4 border-b border-gray-50 cursor-pointer transition-colors hover:bg-gray-50 flex gap-3 ${!notif.isRead ? 'bg-blue-50/30' : ''}`}
+                            >
+                              <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notif.type === 'LEVEL_UP' ? 'bg-yellow-100 text-yellow-600' : notif.type === 'CLASS' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'}`}>
+                                {notif.type === 'LEVEL_UP' ? <Trophy className="w-4 h-4" /> : notif.type === 'CLASS' ? <BookOpen className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <h4 className={`text-sm truncate ${!notif.isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{notif.title}</h4>
+                                  {!notif.isRead && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1" />}
+                                </div>
+                                <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                <span className="text-[10px] text-gray-400 mt-2 block font-medium">
+                                  {new Date(notif.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             <div className="flex items-center gap-3 pl-4 border-l border-gray-200 relative group">
               <div 
                 onClick={() => setProfileOpen(!profileOpen)}

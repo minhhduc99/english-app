@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { StudentStats } from '../entities/student-stats.entity';
 import { Role } from '../../../common/enums/role.enum';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class UsersService {
@@ -12,6 +14,7 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(StudentStats)
     private readonly statsRepository: Repository<StudentStats>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findAllStudents(): Promise<any[]> {
@@ -92,6 +95,15 @@ export class UsersService {
     const levelUp = newLevel > oldLevel;
     
     await this.statsRepository.save(stats);
+
+    if (levelUp) {
+      await this.notificationsService.create({
+        userId,
+        title: 'Level Up! 🎉',
+        message: `Congratulations! You have reached Level ${newLevel}! Keep up the great work.`,
+        type: NotificationType.LEVEL_UP,
+      });
+    }
 
     return {
       totalXp: stats.xp,
