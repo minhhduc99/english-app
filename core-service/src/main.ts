@@ -39,7 +39,7 @@ async function bootstrap() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3030;
   await app.listen(port);
   console.log(`Core Service is running on: http://localhost:${port}`);
   console.log(`Swagger documentation available at: http://localhost:${port}/api/docs`);

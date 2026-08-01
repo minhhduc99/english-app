@@ -54,6 +54,7 @@ services:
     container_name: lms-core
     environment:
       - NODE_ENV=development
+      - PORT=3000
       - DATABASE_URL=postgresql://lms_admin:securepassword123@postgres:5432/lms_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379

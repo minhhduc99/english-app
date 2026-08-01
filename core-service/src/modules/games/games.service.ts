@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { VocabulariesService } from '../vocabularies/vocabularies.service';
 import { UsersService } from '../users/services/users.service';
 
@@ -281,6 +281,33 @@ export class GamesService {
       correctAnswer: correctAnswer,
       message: isCorrect ? 'Correct!' : 'Try again!',
       rewards,
+      stats,
+    };
+  }
+
+  async generateTypingWords() {
+    const allVocabs = await this.vocabulariesService.findAll();
+    // Shuffle all vocabularies
+    const shuffled = allVocabs.sort(() => 0.5 - Math.random());
+    return shuffled.map(vocab => ({
+      id: vocab.id,
+      word: vocab.word,
+      definition: vocab.definition,
+    }));
+  }
+
+  async submitTypingScore(userId: string, correctCount: number, wrongCount: number, score?: number) {
+    if (typeof correctCount !== 'number' || typeof wrongCount !== 'number' || correctCount < 0 || wrongCount < 0) {
+      throw new BadRequestException('Invalid score parameters');
+    }
+    const stickersEarned = typeof score === 'number' && score >= 0
+      ? score
+      : Math.max(0, (correctCount * 100) - (wrongCount * 200));
+
+    const stats = await this.usersService.addRewards(userId, 0, stickersEarned, false);
+    return {
+      success: true,
+      stickersEarned,
       stats,
     };
   }

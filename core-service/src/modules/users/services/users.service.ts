@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { StudentStats } from '../entities/student-stats.entity';
 import { Role } from '../../../common/enums/role.enum';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '../notifications/entities/notification.entity';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationType } from '../../notifications/entities/notification.entity';
 
 @Injectable()
 export class UsersService {
@@ -84,8 +84,8 @@ export class UsersService {
     
     const oldLevel = Math.floor((stats.xp || 0) / 1000) + 1;
     
-    stats.xp = (stats.xp || 0) + xp;
-    stats.stickers = (stats.stickers || 0) + stickers;
+    stats.xp = Math.max(0, (stats.xp || 0) + xp);
+    stats.stickers = Math.max(0, (stats.stickers || 0) + stickers);
     
     if (isDaily) {
       stats.lastDailyGameAt = new Date().toISOString().split('T')[0];

@@ -56,4 +56,14 @@ export class GamesController {
   async verifyTranslation(@Request() req, @Body() body: { id: string; answer: string; type: 'EN_VN' | 'VN_EN' }) {
     return this.gamesService.verifyTranslation(req.user.id, body.id, body.answer, body.type);
   }
+
+  @Get('typing/words')
+  async getTypingWords() {
+    return this.gamesService.generateTypingWords();
+  }
+
+  @Post('typing/submit')
+  async submitTypingScore(@Request() req, @Body() body: { correctCount: number; wrongCount: number; score?: number }) {
+    return this.gamesService.submitTypingScore(req.user.id, body.correctCount, body.wrongCount, body.score);
+  }
 }

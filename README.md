@@ -237,3 +237,27 @@ uvicorn src.main:app --reload
 - **AI Service Clustering:** Configured `ai-service/Dockerfile` to run FastAPI with `uvicorn --workers 4`, solving GIL limitations and significantly improving concurrent WebSocket stream processing capacity.
 - **Core Service Clustering:** Created `core-service/Dockerfile` with `pm2` cluster mode (`-i max`) to enable Node.js multi-threading across all available CPU cores.
 - **Environment Unification:** Updated `docker-compose.yml` to uncomment and boot both fully-configured application services alongside infrastructure.
+
+### [Feature] Vocabulary Racing Game (Typing Practice)
+- **Backend:** Registered `/api/games/typing/words` and `/api/games/typing/submit` endpoints in `GamesController` and `GamesService` to handle dynamic shuffled vocabulary generation and sticker reward/penalty calculations. Implemented clamping logic in `UsersService.addRewards` to ensure student balances never drop below 0.
+- **Frontend:** Built a premium HTML5/CSS/SVG racing typing game in `EnglishGames.tsx` complete with:
+  - Character selection (Racing Boy & Racing Girl).
+  - Horizontally scrolling road highway and animated racing car drivers.
+  - Active text rendering highlighting matching (green) and incorrect (red) characters as the user types.
+  - Dynamic physics collision triggers (pothole hit animations, car bobbing, exhaust boost, screen shake, smoke puffs).
+  - Floating stickers indicators (`+100` / `-200`) and live sound synthesis (pronunciation text-to-speech feedback).
+  - Full translations for English (`en`) and Vietnamese (`vi`) in `LanguageContext.tsx`.
+
+### [Bug Fix] Score Saving & Display Improvements
+- **Backend:** Resolved `UnknownDependenciesException` in NestJS startup by importing the `User` entity repository in `NotificationsModule`. This allows `AuthGuard` to instantiate correctly, resolving API connection/saving issues.
+- **Frontend:** Clamped the display of negative typing scores to `0` in `EnglishGames.tsx` during gameplay and on the game over screen.
+
+### [Feature] Scrambled Word Challenge in Vocabulary Racing
+- **Frontend:** Scrambled word characters in the typing game UI to present a spelling challenge. Displayed the scrambled letters as individual tiles above the typing input, and rendered underscores for untyped characters in the typing preview so players must unscramble the letters to type the correct vocabulary word.
+
+### [Bug Fix] Resolved Port 3000 Local Dev Loopback Conflict
+- **Backend & Proxy:** Shifted local default NestJS port from `3000` to `3030` to avoid conflict with VS Code Live Preview (which hijacks IPv4/IPv6 loopbacks on port 3000), updating Vite dev proxy target in `vite.config.ts` accordingly.
+- **Docker Unification:** Set environment variable `PORT=3000` inside `docker-compose.yml` to maintain standard port mapping for containerized services.
+
+### [Feature] Non-Negative Clamping & Random Bonus Multipliers (x2, x3, +100, +200)
+- **Frontend & Backend:** Clamped game score state so penalties never drop the running score below 0 (e.g. 100 - 200 = 0, next correct answer +100 results in total 100). Implemented random bonus questions with visual animated badges (`x2`, `x3`, `+100`, `+200`), awarding scaling rewards (+200, +300 stickers) and submitting the true calculated score to backend.

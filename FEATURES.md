@@ -32,6 +32,7 @@ This document outlines the core features that have been developed and integrated
 - **Translation Master:** Test vocabulary recall between English and Vietnamese.
 - **Daily Secret Challenge:** A 24-hour rotating quest for bonus rewards.
 - **Economy System:** Earn **XP** to level up and **Coins** to spend in the Mystery Market.
+- **Vocabulary Racing (Đua Xe Gõ Chữ):** A high-speed typing game where players choose a racer (Racing Boy or Racing Girl) and unscramble letter tiles to type vocabulary words under a timer. Features non-negative score clamping (penalized scores never drop below 0), and random bonus questions (`x2`, `x3`, `+100`, `+200`) with animated badges and multiplier rewards.
 
 ## 🌍 4. System & Platform Features
 - **Bilingual Support (i18n):** Full interface switching between **English** and **Vietnamese** without reloading.
